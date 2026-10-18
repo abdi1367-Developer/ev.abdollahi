@@ -6,6 +6,7 @@
  *   curl -s https://<domain>/api/health
  */
 import { NextResponse } from 'next/server';
+import { resolveDeepSeekKey } from '@/lib/ai/providers';
 import { SESSION_COOKIE } from '@/lib/session';
 import { isKvConfigured } from '@/lib/store';
 
@@ -21,6 +22,8 @@ function secretSource(): 'AUTH_SECRET' | 'ADMIN_PASSWORD' | 'fallback' {
 export async function GET() {
   const adminPassword = process.env.ADMIN_PASSWORD || '';
   const kv = isKvConfigured();
+  const deepseekKey = resolveDeepSeekKey();
+  const deepseekModel = (process.env.DEEPSEEK_MODEL || 'deepseek-chat').trim() || 'deepseek-chat';
 
   const payload = {
     status: 'ok',
@@ -44,12 +47,13 @@ export async function GET() {
       blob: Boolean((process.env.BLOB_READ_WRITE_TOKEN || '').trim()),
     },
     ai: {
-      // مدل اصلی DeepSeek است؛ اگر ready برابر false باشد تحلیل با خطای
-      // «کلید DeepSeek خوانده نشد» متوقف می‌شود.
+      // مدل اصلی DeepSeek است؛ کلید اول از متغیر محیطی و در نبود آن از کلید
+      // داخلیِ کد خوانده می‌شود، بنابراین ready باید همیشه true باشد.
       primary: 'deepseek',
-      ready: Boolean((process.env.DEEPSEEK_API_KEY || '').trim()),
-      deepseek: Boolean((process.env.DEEPSEEK_API_KEY || '').trim()),
-      deepseekModel: (process.env.DEEPSEEK_MODEL || 'deepseek-chat').trim() || 'deepseek-chat',
+      ready: deepseekKey.source !== 'none',
+      keySource: deepseekKey.source,
+      deepseek: deepseekKey.source !== 'none',
+      deepseekModel,
       openrouter: Boolean((process.env.OPENROUTER_API_KEY || '').trim()),
     },
   };

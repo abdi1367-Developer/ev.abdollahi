@@ -126,9 +126,8 @@ export async function analyzeThesis(input: {
 
   if (!deepSeek && !openRouterKey) {
     console.error(
-      '[ai] DEEPSEEK_API_KEY در محیط اجرا خوانده نشد (process.env خالی است). ' +
-        'اگر تازه آن را در .env.local گذاشته‌اید سرور را دوباره اجرا کنید؛ در Vercel پس از ' +
-        'افزودن متغیر، Redeploy لازم است.',
+      '[ai] هیچ کلیدی برای DeepSeek در دسترس نیست (نه process.env.DEEPSEEK_API_KEY و نه کلید داخلی). ' +
+        'این حالت نباید رخ دهد؛ مقدار BUILTIN_DEEPSEEK_KEY را در lib/ai/providers.ts بررسی کنید.',
     );
     throw new AIError(
       'کلید DeepSeek روی سرور خوانده نشد. متغیر محیطی DEEPSEEK_API_KEY را تنظیم کنید؛ ' +
