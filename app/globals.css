@@ -1,0 +1,505 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --page-bg: #fff9f3;
+    --glow-1: rgba(249, 115, 22, 0.22);
+    --glow-2: rgba(251, 191, 36, 0.18);
+    --glow-3: rgba(234, 88, 12, 0.14);
+    --login-light: rgba(251, 146, 60, 0.45);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --page-bg: #0d0906;
+    --glow-1: rgba(249, 115, 22, 0.3);
+    --glow-2: rgba(251, 191, 36, 0.14);
+    --glow-3: rgba(194, 65, 12, 0.24);
+    --login-light: rgba(251, 146, 60, 0.34);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-transparent text-slate-900 antialiased dark:text-slate-100;
+    font-family: Vazirmatn, IRANSansX, IRANSans, Tahoma, 'Segoe UI', system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    background-color: var(--page-bg);
+    background-image:
+      radial-gradient(48rem 48rem at 88% -12%, var(--glow-1), transparent 62%),
+      radial-gradient(42rem 42rem at 6% 2%, var(--glow-2), transparent 62%),
+      radial-gradient(54rem 54rem at 50% 118%, var(--glow-3), transparent 62%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-orange-500/25 text-orange-950 dark:bg-orange-400/30 dark:text-white;
+  }
+
+  /* اسکرول‌بار سبک برای پنل‌های متنی */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-400/50 dark:bg-slate-500/50;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  /* سطح شیشه‌ای اصلی */
+  .card {
+    @apply rounded-3xl border border-orange-100/70 bg-white/70 p-5 shadow-glass backdrop-blur-2xl transition-colors sm:p-6 dark:border-orange-200/10 dark:bg-white/[0.055];
+  }
+
+  .glass {
+    @apply rounded-3xl border border-orange-100/70 bg-white/60 shadow-glass backdrop-blur-2xl dark:border-orange-200/10 dark:bg-white/[0.05];
+  }
+
+  .tile {
+    @apply rounded-2xl border border-orange-100/60 bg-white/70 p-3 dark:border-orange-200/10 dark:bg-white/[0.04];
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200;
+  }
+
+  .field {
+    @apply w-full rounded-2xl border border-slate-300/80 bg-white/80 px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none backdrop-blur transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15 disabled:cursor-not-allowed disabled:bg-slate-100/70 disabled:text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-400 dark:focus:bg-white/[0.09] dark:focus:ring-indigo-400/20 dark:disabled:bg-white/[0.03] dark:disabled:text-slate-500;
+  }
+
+  .field-error {
+    @apply border-rose-400 focus:border-rose-500 focus:ring-rose-500/15 dark:border-rose-500/60 dark:focus:border-rose-400;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-slate-950;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-gradient text-white shadow-lg shadow-indigo-600/25 hover:brightness-110 focus-visible:ring-indigo-400;
+  }
+
+  .btn-secondary {
+    @apply btn border border-white/70 bg-white/70 text-slate-700 shadow-sm backdrop-blur hover:bg-white focus-visible:ring-indigo-300 dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:bg-white/[0.12];
+  }
+
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-900/5 focus-visible:ring-slate-300 dark:text-slate-300 dark:hover:bg-white/10;
+  }
+
+  .btn-danger {
+    @apply btn border border-rose-200 bg-rose-50/80 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-300 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-orange-100/80 bg-white/70 px-2.5 py-1 text-xs font-medium text-slate-600 backdrop-blur dark:border-orange-200/10 dark:bg-white/[0.07] dark:text-slate-300;
+  }
+
+  .chip-brand {
+    @apply chip border-indigo-200/80 bg-indigo-50/80 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/15 dark:text-indigo-200;
+  }
+
+  .alert {
+    @apply rounded-2xl border px-4 py-3 text-sm leading-6 backdrop-blur;
+  }
+
+  .alert-error {
+    @apply alert border-rose-200 bg-rose-50/80 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-200;
+  }
+
+  .alert-info {
+    @apply alert border-sky-200 bg-sky-50/80 text-sky-900 dark:border-sky-400/30 dark:bg-sky-500/10 dark:text-sky-200;
+  }
+
+  .alert-warning {
+    @apply alert border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200;
+  }
+
+  .link-quiet {
+    @apply rounded-lg font-semibold text-indigo-700 underline decoration-indigo-300 underline-offset-4 transition hover:text-indigo-900 dark:text-indigo-300 dark:decoration-indigo-500/60 dark:hover:text-indigo-200;
+  }
+
+  .hero-glow {
+    @apply pointer-events-none absolute -z-10 rounded-full blur-3xl;
+  }
+}
+
+/* استایل Markdown بدون نیاز به افزونه‌ی typography */
+.markdown-body {
+  @apply text-[15px] leading-8 text-slate-700;
+  word-break: break-word;
+}
+
+.markdown-body > * + * {
+  @apply mt-4;
+}
+
+.markdown-body h1 {
+  @apply mt-6 text-2xl font-extrabold text-slate-900;
+}
+
+.markdown-body h2 {
+  @apply mt-6 border-b border-slate-200 pb-2 text-xl font-bold text-slate-900;
+}
+
+.markdown-body h3 {
+  @apply mt-5 text-lg font-bold text-slate-900;
+}
+
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  @apply mt-4 text-base font-bold text-slate-800;
+}
+
+.markdown-body p {
+  @apply leading-8;
+}
+
+.markdown-body a {
+  @apply text-indigo-700 underline decoration-indigo-300 underline-offset-4 hover:text-indigo-800;
+}
+
+.markdown-body strong {
+  @apply font-bold text-slate-900;
+}
+
+.markdown-body ul {
+  @apply list-disc pr-6;
+}
+
+.markdown-body ol {
+  @apply list-decimal pr-6;
+}
+
+.markdown-body li {
+  @apply my-1.5 leading-8;
+}
+
+.markdown-body li > ul,
+.markdown-body li > ol {
+  @apply mt-1;
+}
+
+.markdown-body blockquote {
+  @apply rounded-xl border-r-4 border-indigo-300 bg-indigo-50/60 px-4 py-2 text-slate-700;
+}
+
+.markdown-body code {
+  @apply rounded-md bg-slate-100 px-1.5 py-0.5 text-[13px] text-slate-800;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+.markdown-body pre {
+  @apply overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100;
+  direction: ltr;
+}
+
+.markdown-body pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+.markdown-body table {
+  @apply w-full border-collapse overflow-hidden rounded-xl text-sm;
+}
+
+.markdown-body th {
+  @apply border border-slate-200 bg-slate-100 px-3 py-2 text-right font-semibold text-slate-800;
+}
+
+.markdown-body td {
+  @apply border border-slate-200 px-3 py-2 text-right align-top;
+}
+
+.markdown-body hr {
+  @apply my-6 border-slate-200;
+}
+
+.markdown-body img {
+  @apply max-w-full rounded-xl;
+}
+
+/* متن‌های لاتین درون متن فارسی */
+.ltr {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* ---------- نسخه‌ی شب: خوانایی متن Markdown ---------- */
+.dark .markdown-body {
+  @apply text-slate-300;
+}
+
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4,
+.dark .markdown-body h5,
+.dark .markdown-body h6,
+.dark .markdown-body strong {
+  @apply text-white;
+}
+
+.dark .markdown-body h2 {
+  @apply border-white/10;
+}
+
+.dark .markdown-body a {
+  @apply text-indigo-300 decoration-indigo-500/60 hover:text-indigo-200;
+}
+
+.dark .markdown-body blockquote {
+  @apply border-indigo-400/60 bg-indigo-500/10 text-slate-200;
+}
+
+.dark .markdown-body code {
+  @apply bg-white/10 text-slate-100;
+}
+
+.dark .markdown-body pre {
+  @apply bg-slate-950/80 text-slate-100 ring-1 ring-white/10;
+}
+
+.dark .markdown-body th {
+  @apply border-white/10 bg-white/[0.07] text-slate-100;
+}
+
+.dark .markdown-body td {
+  @apply border-white/10 text-slate-300;
+}
+
+.dark .markdown-body hr {
+  @apply border-white/10;
+}
+
+/* ---------- پل تم شب برای سطوح روشن داخل کارت‌ها ----------
+   بعضی بخش‌ها (کاشی‌های آمار، جعبه‌های نقاط قوت/ضعف) رنگ روشن ثابت دارند.
+   این قواعد آن‌ها را در تم شب به سطح شیشه‌ای تاریک تبدیل می‌کنند تا نیازی به
+   تکرار کلاس‌های dark در همه‌ی کامپوننت‌ها نباشد. */
+.dark .card .bg-white,
+.dark .card .bg-slate-50,
+.dark .card .bg-slate-100 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .card .bg-indigo-50,
+.dark .card .bg-indigo-50\/70 {
+  background-color: rgba(99, 102, 241, 0.14);
+}
+
+.dark .card .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
+.dark .card .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.12);
+}
+
+.dark .card .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.12);
+}
+
+.dark .card .text-slate-900,
+.dark .card .text-slate-800 {
+  color: rgb(241 245 249);
+}
+
+.dark .card .text-slate-700,
+.dark .card .text-slate-600 {
+  color: rgb(203 213 225);
+}
+
+.dark .card .text-indigo-700,
+.dark .card .text-indigo-800 {
+  color: rgb(199 210 254);
+}
+
+.dark .card .text-emerald-800,
+.dark .card .text-emerald-900 {
+  color: rgb(167 243 208);
+}
+
+.dark .card .text-emerald-600,
+.dark .card .text-emerald-700 {
+  color: rgb(110 231 183);
+}
+
+.dark .card .text-rose-800,
+.dark .card .text-rose-900 {
+  color: rgb(253 164 175);
+}
+
+.dark .card .text-rose-600,
+.dark .card .text-rose-700 {
+  color: rgb(253 164 175);
+}
+
+.dark .card .text-amber-600,
+.dark .card .text-amber-700,
+.dark .card .text-amber-900 {
+  color: rgb(253 230 138);
+}
+
+.dark .card .text-sky-600,
+.dark .card .text-sky-700,
+.dark .card .text-sky-900 {
+  color: rgb(186 230 253);
+}
+
+.dark .card .text-indigo-600 {
+  color: rgb(165 180 252);
+}
+
+.dark .card .text-slate-500 {
+  color: rgb(148 163 184);
+}
+
+.dark .card .border-slate-100,
+.dark .card .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- صحنه‌ی ورود: شیشه‌ی نارنجی، اشکال معلق و نور دنبال‌کننده‌ی موس ---------- */
+.login-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 247, 237, 0.9), rgba(255, 237, 213, 0.72)),
+    radial-gradient(circle at 85% 12%, rgba(251, 146, 60, 0.32), transparent 42%);
+}
+
+.dark .login-stage {
+  background:
+    linear-gradient(145deg, rgba(30, 18, 11, 0.94), rgba(13, 9, 6, 0.86)),
+    radial-gradient(circle at 85% 12%, rgba(249, 115, 22, 0.28), transparent 44%);
+}
+
+.login-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(194, 65, 12, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(194, 65, 12, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 40%, black, transparent 78%);
+}
+
+.login-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    28rem 28rem at var(--pointer-x, 70%) var(--pointer-y, 30%),
+    var(--login-light),
+    transparent 68%
+  );
+  transition: background 120ms linear;
+}
+
+.floating-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(251, 146, 60, 0.13));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 24px 50px -26px rgba(154, 52, 18, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.dark .floating-orb {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(249, 115, 22, 0.08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 24px 50px -26px rgba(0, 0, 0, 0.7);
+}
+
+.spotlight-panel {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 32px 80px -38px rgba(124, 45, 18, 0.46);
+  backdrop-filter: blur(24px);
+}
+
+.dark .spotlight-panel {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035));
+  border-color: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 32px 80px -38px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- نمودارها ---------- */
+.chart-grid line {
+  stroke: rgba(148, 163, 184, 0.22);
+}
+
+.dark .chart-grid line {
+  stroke: rgba(255, 255, 255, 0.09);
+}
+
+.chart-reveal {
+  animation: chart-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes chart-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chart-bar {
+  transform-origin: right center;
+}
+
+/* ---------- اسکرول‌بار نارنجی ---------- */
+* {
+  scrollbar-color: rgba(249, 115, 22, 0.45) transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-orange-400/50 dark:bg-orange-500/40;
+}
+
+/* ---------- احترام به تنظیم کاهش حرکت ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
