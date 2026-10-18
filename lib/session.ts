@@ -15,6 +15,9 @@ export interface SessionPayload {
   uid: string;
   role: UserRole;
   exp: number;
+  /** برای استفاده در محیط‌های Serverless بدون KV (تا هویت از خود کوکی امضاشده خوانده شود) */
+  username?: string;
+  displayName?: string;
 }
 
 function secret(): string {
@@ -75,11 +78,15 @@ export async function createSessionToken(input: {
   uid: string;
   role: UserRole;
   maxAgeSeconds?: number;
+  username?: string;
+  displayName?: string;
 }): Promise<string> {
   const payload: SessionPayload = {
     uid: input.uid,
     role: input.role,
     exp: Math.floor(Date.now() / 1000) + (input.maxAgeSeconds ?? SESSION_MAX_AGE_SECONDS),
+    ...(input.username ? { username: input.username } : {}),
+    ...(input.displayName ? { displayName: input.displayName } : {}),
   };
   const body = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = bytesToBase64Url(await hmac(body));
@@ -107,7 +114,17 @@ export async function verifySessionToken(
       return null;
     }
 
-    return { uid: parsed.uid, role: parsed.role, exp: parsed.exp };
+    return {
+      uid: parsed.uid,
+      role: parsed.role,
+      exp: parsed.exp,
+      ...(typeof parsed.username === 'string' && parsed.username
+        ? { username: parsed.username }
+        : {}),
+      ...(typeof parsed.displayName === 'string' && parsed.displayName
+        ? { displayName: parsed.displayName }
+        : {}),
+    };
   } catch {
     return null;
   }
@@ -131,11 +148,34 @@ export function readCookie(cookieHeader: string | null | undefined, name: string
   return null;
 }
 
-export function sessionCookieOptions(maxAgeSeconds = SESSION_MAX_AGE_SECONDS) {
+/**
+ * آیا درخواست روی HTTPS انجام شده است؟ پرچم Secure کوکی باید از پروتکل
+ * واقعی درخواست خوانده شود، نه فقط از NODE_ENV؛ وگرنه در اجرای تولیدی
+ * محلی روی http مرورگر کوکی را ذخیره نمی‌کند و ورود/خروج بی‌صدا از کار
+ * می‌افتد (کاربر همیشه به صفحه‌ی ورود برمی‌گردد).
+ */
+export function isSecureRequest(request: Request): boolean {
+  const forwarded = request.headers
+    .get('x-forwarded-proto')
+    ?.split(',')[0]
+    ?.trim()
+    .toLowerCase();
+  if (forwarded) return forwarded === 'https';
+  try {
+    return new URL(request.url).protocol === 'https:';
+  } catch {
+    return process.env.NODE_ENV === 'production';
+  }
+}
+
+export function sessionCookieOptions(
+  maxAgeSeconds = SESSION_MAX_AGE_SECONDS,
+  options: { secure?: boolean } = {},
+) {
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    secure: options.secure ?? process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: maxAgeSeconds,
   };

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 const AUTHOR_NAME = 'علی عبدالهی';
 
 const HERO_STATS = [
-  { label: 'سقف حجم فایل', value: '۴ مگابایت' },
+  { label: 'سقف حجم فایل', value: '۱۰ مگابایت' },
   { label: 'مراحل ارزیابی', value: '۵ مرحله' },
   { label: 'اعتبار نشست', value: '۷ روز' },
   { label: 'اعتبارسنجی', value: 'کلاینت + سرور' },
@@ -66,7 +66,7 @@ const ARCHITECTURE = [
   {
     icon: FileTextIcon,
     title: 'لایه‌ی پردازش متن',
-    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۴ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات.',
+    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۱۰ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات. فایل‌های بزرگ‌تر از ۴ مگابایت از طریق Vercel Blob مستقیماً از مرورگر آپلود می‌شوند.',
   },
   {
     icon: SparklesIcon,
@@ -119,7 +119,7 @@ const SECURITY = [
   {
     icon: FileTextIcon,
     title: 'اعتبارسنجی ورودی و فایل',
-    text: 'مشخصات در کلاینت و سرور بررسی می‌شود؛ نوع فایل با MIME، پسوند و امضای بایت‌های ابتدایی (magic bytes) تشخیص داده می‌شود و سقف ۴ مگابایت اعمال می‌گردد.',
+    text: 'مشخصات در کلاینت و سرور بررسی می‌شود؛ نوع فایل با MIME، پسوند و امضای بایت‌های ابتدایی (magic bytes) تشخیص داده می‌شود و سقف ۱۰ مگابایت اعمال می‌گردد. فایل موقت پس از تبدیل از Vercel Blob حذف می‌شود.',
   },
   {
     icon: SaveIcon,

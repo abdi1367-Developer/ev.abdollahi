@@ -86,7 +86,6 @@ async function loadRawUsers(): Promise<UserRecord[]> {
     const raw = await redisCommand<string | null>(['GET', USERS_KEY]);
     return parseUsers(raw);
   }
-
   try {
     return parseUsers(await readFile(DATA_FILE, 'utf8'));
   } catch (error) {
@@ -166,7 +165,8 @@ function seedAdmin(): UserRecord {
   const now = new Date().toISOString();
 
   return {
-    id: randomUUID(),
+    // شناسه‌ی ثابت تا در محیط Serverless (بدون KV) همه‌ی نمونه‌ها یک مدیر را بشناسند.
+    id: `seed-admin:${username}`,
     username,
     displayName:
       (process.env.ADMIN_DISPLAY_NAME || 'مدیر سامانه').trim().slice(0, 80) || 'مدیر سامانه',

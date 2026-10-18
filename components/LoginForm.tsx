@@ -11,7 +11,6 @@ import {
   ShieldIcon,
   SpinnerIcon,
 } from './Icons';
-import { ThemeToggle } from './ThemeToggle';
 import { SiteLogo } from './SiteLogo';
 
 interface LoginFormProps {
@@ -54,6 +53,20 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         return;
       }
 
+      // مرورگر ممکن است کوکی نشست را ذخیره نکند (کوکی مسدود، حالت ناشناس یا
+      // اجرای http). در این حالت کاربر بی‌صدا به صفحه‌ی ورود برمی‌گشت؛ پس
+      // پیش از انتقال، وجود نشست را بررسی و پیام روشن نمایش می‌دهیم.
+      const sessionCheck = await fetch('/api/auth/me', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      if (!sessionCheck.ok) {
+        setError(
+          'ورود انجام شد اما مرورگر کوکی نشست را ذخیره نکرد. مسدودکننده‌های کوکی یا حالت ناشناس را بررسی کنید.',
+        );
+        return;
+      }
+
       window.location.replace(nextPath || '/');
     } catch {
       setError('ارتباط با سرور برقرار نشد. اتصال شبکه را بررسی کنید.');
@@ -64,14 +77,10 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
   return (
     <div
-      className="login-stage -mx-4 -my-6 min-h-screen rounded-[2rem] px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-10 lg:-my-10 lg:px-10 lg:py-10"
+      className="login-stage -mx-4 min-h-[calc(100vh_-_7rem)] rounded-[2rem] px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-10 lg:min-h-[calc(100vh_-_8.5rem)] lg:px-10 lg:py-10"
       onPointerMove={handlePointerMove}
       onPointerLeave={() => setPointer({ x: 72, y: 28 })}
     >
-      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
-        <ThemeToggle />
-      </div>
-
       <div
         className="login-spotlight"
         style={
@@ -87,7 +96,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <span className="floating-orb bottom-16 left-1/4 h-14 w-14 animate-float sm:h-20 sm:w-20" aria-hidden="true" />
       <span className="floating-orb bottom-1/4 right-1/3 h-10 w-10 animate-drift sm:h-14 sm:w-14" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-6 sm:gap-8 lg:min-h-[calc(100vh-9rem)] lg:grid-cols-[1.05fr_.95fr] lg:gap-12">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-6 sm:gap-8 lg:min-h-[calc(100vh-14rem)] lg:grid-cols-[1.05fr_.95fr] lg:gap-12">
         <section className="order-2 space-y-6 text-slate-900 lg:order-1 dark:text-white">
           <span className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-white/60 px-3 py-1.5 text-[11px] font-bold text-orange-800 shadow-sm backdrop-blur-xl dark:border-orange-400/25 dark:bg-white/[0.07] dark:text-orange-200">
             <ShieldIcon className="h-3.5 w-3.5" />
@@ -141,72 +150,72 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             </div>
           </div>
 
-        {error ? (
-          <div className="alert-error flex items-start gap-2" role="alert">
-            <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        <form className="space-y-4" onSubmit={submit}>
-          <div>
-            <label className="label" htmlFor="username">
-              نام کاربری
-            </label>
-            <input
-              id="username"
-              className="field ltr"
-              value={username}
-              autoComplete="username"
-              autoFocus
-              maxLength={32}
-              disabled={loading}
-              onChange={(event) => setUsername(event.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <label className="label" htmlFor="password">
-                رمز عبور
-              </label>
-              <button
-                type="button"
-                className="mb-1.5 text-[11px] font-semibold text-orange-700 underline-offset-4 hover:underline dark:text-orange-300"
-                onClick={() => setShowPassword((value) => !value)}
-                tabIndex={-1}
-              >
-                {showPassword ? 'پنهان کردن' : 'نمایش رمز'}
-              </button>
+          {error ? (
+            <div className="alert-error flex items-start gap-2" role="alert">
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              className="field ltr"
-              value={password}
-              autoComplete="current-password"
-              maxLength={128}
-              disabled={loading}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
+          ) : null}
 
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <SpinnerIcon className="h-4 w-4 animate-spin" />
-                در حال ورود…
-              </>
-            ) : (
-              <>
-                ورود به سامانه
-                <ArrowLeftIcon className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
-      </section>
+          <form className="space-y-4" onSubmit={submit}>
+            <div>
+              <label className="label" htmlFor="username">
+                نام کاربری
+              </label>
+              <input
+                id="username"
+                className="field ltr"
+                value={username}
+                autoComplete="username"
+                autoFocus
+                maxLength={32}
+                disabled={loading}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <label className="label" htmlFor="password">
+                  رمز عبور
+                </label>
+                <button
+                  type="button"
+                  className="mb-1.5 text-[11px] font-semibold text-orange-700 underline-offset-4 hover:underline dark:text-orange-300"
+                  onClick={() => setShowPassword((value) => !value)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? 'پنهان کردن' : 'نمایش رمز'}
+                </button>
+              </div>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                className="field ltr"
+                value={password}
+                autoComplete="current-password"
+                maxLength={128}
+                disabled={loading}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button type="submit" className="btn-primary w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <SpinnerIcon className="h-4 w-4 animate-spin" />
+                  در حال ورود…
+                </>
+              ) : (
+                <>
+                  ورود به سامانه
+                  <ArrowLeftIcon className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   );

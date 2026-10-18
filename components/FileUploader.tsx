@@ -5,7 +5,7 @@ import { getApiError, readJsonSafe } from '@/lib/api';
 import { downloadMarkdown } from '@/lib/download';
 import { buildDownloadName, faNumber, formatBytes } from '@/lib/format';
 import type { ApiErrorResponse, ConvertInfo, ConvertResponse, ThesisMeta } from '@/lib/types';
-import { MAX_FILE_BYTES, MAX_FILE_LABEL } from '@/lib/upload';
+import { MAX_DIRECT_UPLOAD_BYTES, MAX_DIRECT_UPLOAD_LABEL, MAX_FILE_BYTES, MAX_FILE_LABEL } from '@/lib/upload';
 import {
   AlertIcon,
   ArrowLeftIcon,
@@ -28,6 +28,26 @@ interface FileUploaderProps {
 }
 
 const ACCEPT = '.docx,.pdf';
+
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/**
+ * نوع MIME را از پسوند فایل تعیین می‌کند تا دقیقاً با allowedContentTypes
+ * سمت سرور یکی باشد. بعضی مرورگرها برای فایل‌های drag & drop نوع خالی
+ * برمی‌گردانند و در آن صورت Vercel Blob آپلود را رد می‌کند.
+ */
+function resolveContentType(fileName: string): string {
+  return /\.pdf$/i.test(fileName) ? 'application/pdf' : DOCX_MIME_TYPE;
+}
+
+/** شناسه‌ی یکتا برای مسیر Blob (randomUUID در مرورگرهای قدیمی موجود نیست). */
+function createUploadId(): string {
+  const cryptoObj = globalThis.crypto;
+  if (typeof cryptoObj?.randomUUID === 'function') {
+    return cryptoObj.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export function FileUploader({
   meta,
@@ -61,10 +81,31 @@ export function FileUploader({
 
     setConverting(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      let response: Response;
 
-      const response = await fetch('/api/convert', { method: 'POST', body: formData });
+      if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
+        // فایل‌های بزرگ‌تر از سقف بدنه‌ی Vercel باید مستقیم از مرورگر به Blob بروند.
+        const { upload } = await import('@vercel/blob/client');
+        const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-90) || 'thesis-file';
+        const blob = await upload(`thesis-uploads/${createUploadId()}-${safeName}`, file, {
+          access: 'private',
+          handleUploadUrl: '/api/blob/upload',
+          multipart: true,
+          contentType: resolveContentType(file.name),
+          clientPayload: JSON.stringify({ fileName: file.name, fileSize: file.size }),
+        });
+
+        response = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blobPathname: blob.pathname, fileName: file.name }),
+        });
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        response = await fetch('/api/convert', { method: 'POST', body: formData });
+      }
+
       const payload = await readJsonSafe<ConvertResponse & ApiErrorResponse>(response);
 
       if (!response.ok || !payload || typeof payload.markdown !== 'string') {
@@ -73,8 +114,19 @@ export function FileUploader({
       }
 
       onConverted({ markdown: payload.markdown, info: payload.info });
-    } catch {
-      setError('ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.');
+    } catch (error) {
+      console.error('[FileUploader] upload failed:', error);
+      const detail = error instanceof Error ? error.message : '';
+      if (/401|403|unauthorized|forbidden|login|session|وارد حساب|نشست/i.test(detail)) {
+        // توکن آپلود فقط برای کاربر واردشده صادر می‌شود.
+        setError('نشست شما منقضی شده است. لطفاً دوباره وارد شوید و سپس فایل را آپلود کنید.');
+      } else if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
+        setError(
+          'آپلود فایل بزرگ ناموفق بود. برای فایل‌های بالای ۴ مگابایت، باید Vercel Blob در بخش Storage پروژه فعال و به پروژه متصل باشد.',
+        );
+      } else {
+        setError('ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.');
+      }
     } finally {
       setConverting(false);
     }
@@ -100,6 +152,9 @@ export function FileUploader({
       <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs leading-6 text-sky-900">
         <p className="font-semibold">
           حداکثر {MAX_FILE_LABEL} — فقط .docx و .pdf
+        </p>
+        <p className="mt-0.5 text-[11px] leading-5 text-sky-800/80">
+          فایل‌های تا {MAX_DIRECT_UPLOAD_LABEL} مستقیم ارسال می‌شوند و فایل‌های بزرگ‌تر از طریق Vercel Blob آپلود می‌شوند.
         </p>
       </div>
 

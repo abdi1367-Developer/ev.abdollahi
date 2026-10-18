@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { getSessionUserFromCookies } from '@/lib/auth-server';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 
@@ -33,7 +34,11 @@ export const viewport: Viewport = {
  */
 const THEME_SCRIPT = `(function(){try{var k='thesis-evaluator:theme';var s=localStorage.getItem(k);var d=s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // کاربر در سرور خوانده می‌شود تا دکمه‌ی ورود/خروج همین ابتدا در HTML باشد و
+  // اگر اسکریپت‌ها دیر بارگذاری شوند یا /api/auth/me در دسترس نباشد، هدر خالی نماند.
+  const user = await getSessionUserFromCookies();
+
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
@@ -49,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col">
-        <SiteHeader />
+        <SiteHeader initialUser={user} />
         <main className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10 2xl:px-16">{children}</main>
         <SiteFooter />
       </body>

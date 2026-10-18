@@ -4,6 +4,7 @@ import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
   createSessionToken,
+  isSecureRequest,
   sessionCookieOptions,
 } from '@/lib/session';
 import type { ApiErrorResponse, AuthResponse } from '@/lib/types';
@@ -88,10 +89,16 @@ export async function POST(request: Request) {
     const token = await createSessionToken({
       uid: user.id,
       role: user.role,
+      username: user.username,
+      displayName: user.displayName,
       maxAgeSeconds: SESSION_MAX_AGE_SECONDS,
     });
     const response = NextResponse.json<AuthResponse>({ user });
-    response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+    response.cookies.set(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(SESSION_MAX_AGE_SECONDS, { secure: isSecureRequest(request) }),
+    );
     return response;
   } catch (error) {
     console.error('[api/auth/login] failed:', error);
