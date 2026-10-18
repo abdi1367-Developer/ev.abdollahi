@@ -71,7 +71,7 @@ const ARCHITECTURE = [
   {
     icon: SparklesIcon,
     title: 'لایه‌ی هوش مصنوعی',
-    text: 'مسیر /api/analyze متن را به پیام مدل تبدیل می‌کند: ابتدا مدل‌های رایگان OpenRouter و در صورت شکست، DeepSeek. بودجه‌ی زمانی، timeout هر مدل و تلاش‌های ناموفق ثبت می‌شوند.',
+    text: 'مسیر /api/analyze متن را به پیام مدل تبدیل می‌کند: مدل اصلی DeepSeek است و تنها در صورت شکست آن (و وجود کلید) مدل‌های رایگان OpenRouter امتحان می‌شوند. بودجه‌ی زمانی، timeout هر مدل و تلاش‌های ناموفق ثبت می‌شوند.',
   },
   {
     icon: ShieldIcon,

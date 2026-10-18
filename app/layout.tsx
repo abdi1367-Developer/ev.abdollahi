@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { getSessionUserFromCookies } from '@/lib/auth-server';
+import type { PublicUser } from '@/lib/types';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 
@@ -37,7 +38,14 @@ const THEME_SCRIPT = `(function(){try{var k='thesis-evaluator:theme';var s=local
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // کاربر در سرور خوانده می‌شود تا دکمه‌ی ورود/خروج همین ابتدا در HTML باشد و
   // اگر اسکریپت‌ها دیر بارگذاری شوند یا /api/auth/me در دسترس نباشد، هدر خالی نماند.
-  const user = await getSessionUserFromCookies();
+  // هر خطایی در خواندن نشست/ذخیره‌سازی کاربران نباید کل سایت (از جمله صفحه‌ی
+  // ورود) را با خطای ۵۰۰ از کار بیندازد؛ در این حالت هدر بدون کاربر رندر می‌شود.
+  let user: PublicUser | null = null;
+  try {
+    user = await getSessionUserFromCookies();
+  } catch (error) {
+    console.error('[layout] reading session failed:', error);
+  }
 
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>

@@ -107,7 +107,7 @@ export interface AttemptRecord {
 export interface AnalysisInfo {
   provider: string;
   model: string;
-  /** آیا از Fallback (DeepSeek) استفاده شده است؟ */
+  /** آیا از مدل جایگزین (نه مدل اصلی) استفاده شده است؟ */
   fallbackUsed: boolean;
   attempts: AttemptRecord[];
   /** آیا متن به‌دلیل طول زیاد خلاصه/برش داده شده است؟ */

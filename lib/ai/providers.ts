@@ -1,9 +1,10 @@
 /**
  * ارتباط با سرویس‌های مدل زبانی.
  *
- * زنجیره: مدل‌های رایگان OpenRouter (شناسه‌ها به‌صورت زمان‌اجرا کشف می‌شوند،
- * چون مرتب تغییر می‌کنند) → DeepSeek به‌عنوان Fallback قابل‌اعتماد.
- * هیچ کلیدی در کد نیست؛ همه از `process.env` خوانده می‌شوند.
+ * زنجیره: DeepSeek (مدل اصلی، DEEPSEEK_API_KEY) → مدل‌های رایگان OpenRouter
+ * (فقط اگر OPENROUTER_API_KEY تنظیم شده باشد) → تلاش نهایی با DeepSeek.
+ * هیچ کلیدی در کد نیست؛ همه از `process.env` خوانده می‌شوند تا کلید هرگز در
+ * مخزن گیت ذخیره نشود.
  */
 import type { ChatMessage } from './prompt';
 import { AIError } from './errors';

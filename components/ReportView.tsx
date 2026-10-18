@@ -239,9 +239,17 @@ export function ReportView({
           <h2 className="text-lg font-bold text-slate-900">شفافیت فرایند تحلیل</h2>
         </div>
 
-        {analysis.fallbackUsed ? (
+        {analysis.fallbackUsed && analysis.provider === 'openrouter' ? (
           <div className="alert-warning">
-            مدل رایگان OpenRouter در این نوبت پاسخ معتبر نداد؛ ارزیابی با مدل جایگزین (DeepSeek) انجام شد.
+            مدل اصلی (DeepSeek) در این نوبت پاسخ معتبر نداد؛ ارزیابی با مدل جایگزین رایگان OpenRouter
+            انجام شد.
+          </div>
+        ) : null}
+
+        {analysis.fallbackUsed && analysis.provider === 'deepseek' ? (
+          <div className="alert-warning">
+            DeepSeek در تلاش اول پاسخ معتبر نداد؛ ارزیابی در تلاش بعدی تکمیل شد. نتیجه را یک‌بار
+            بازبینی کنید.
           </div>
         ) : null}
 
@@ -262,7 +270,11 @@ export function ReportView({
           <div className="rounded-xl bg-slate-50 p-3">
             <dt className="text-slate-500">سرویس‌دهنده</dt>
             <dd className="mt-0.5 font-bold text-slate-800">
-              {analysis.provider === 'openrouter' ? 'OpenRouter (رایگان)' : analysis.provider}
+              {analysis.provider === 'openrouter'
+                ? 'OpenRouter (رایگان)'
+                : analysis.provider === 'deepseek'
+                  ? 'DeepSeek'
+                  : analysis.provider}
             </dd>
           </div>
           <div className="rounded-xl bg-slate-50 p-3">

@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "ارزیاب هوشمند پایان‌نامه: تبدیل Word/PDF به Markdown و تحلیل با هوش مصنوعی",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ai:check": "node scripts/check-ai.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

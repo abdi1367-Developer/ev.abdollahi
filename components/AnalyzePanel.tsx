@@ -249,7 +249,10 @@ export function AnalyzePanel({
           نحوه‌ی ارزیابی
         </p>
         <ul className="mt-1.5 list-disc space-y-1 pr-5 text-[13px]">
-          <li>ابتدا مدل‌های رایگان OpenRouter امتحان می‌شوند؛ در صورت خطا، DeepSeek به‌عنوان جایگزین پاسخ می‌دهد.</li>
+          <li>
+            ارزیابی با مدل DeepSeek انجام می‌شود؛ در صورت خطا (و در صورت تنظیم کلید) مدل‌های رایگان
+            OpenRouter امتحان می‌شوند.
+          </li>
           <li>
             نمره‌ی کل از میانگین وزنی {faNumber(criteria.length)} معیار این قالب در سرور محاسبه
             می‌شود، نه از خروجی مدل.

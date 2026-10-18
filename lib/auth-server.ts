@@ -3,6 +3,7 @@
  * middleware فقط وجود کوکی امضاشده را بررسی می‌کند؛ نقش و وضعیت واقعی
  * کاربر در هر API حساس از همین فایل و از منبع کاربران خوانده می‌شود.
  */
+import './webcrypto-node';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { readCookie, SESSION_COOKIE, verifySessionToken } from './session';

@@ -20,14 +20,24 @@ export interface SessionPayload {
   displayName?: string;
 }
 
+let warnedFallbackSecret = false;
+
 function secret(): string {
   // در Production حتماً AUTH_SECRET را تنظیم کنید؛ در نبود آن، از رمز مدیر
   // (اگر تنظیم شده باشد) استفاده می‌شود تا حداقل راز پیش‌فرضِ شناخته‌شده نباشد.
-  return (
-    (process.env.AUTH_SECRET || '').trim() ||
-    (process.env.ADMIN_PASSWORD || '').trim() ||
-    FALLBACK_SECRET
-  );
+  const authSecret = (process.env.AUTH_SECRET || '').trim();
+  if (authSecret) return authSecret;
+
+  const adminPassword = (process.env.ADMIN_PASSWORD || '').trim();
+  if (adminPassword) return adminPassword;
+
+  if (!warnedFallbackSecret && process.env.NODE_ENV === 'production') {
+    warnedFallbackSecret = true;
+    console.warn(
+      '[session] AUTH_SECRET و ADMIN_PASSWORD تنظیم نشده‌اند؛ از راز پیش‌فرض توسعه‌ای استفاده می‌شود. برای Production یک AUTH_SECRET تصادفی تنظیم کنید.',
+    );
+  }
+  return FALLBACK_SECRET;
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {

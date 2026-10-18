@@ -18,7 +18,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
       <h1 className="text-lg font-bold text-slate-900">خطایی رخ داد</h1>
       <p className="mt-2 text-sm leading-7 text-slate-500">
         در پردازش درخواست شما مشکلی پیش آمد. می‌توانید دوباره تلاش کنید؛ اگر خطا ادامه داشت، صفحه را
-        بازخوانی کنید.
+        بازخوانی کنید. برای عیب‌یابی، وضعیت محیط اجرا را در مسیر{' '}
+        <span className="ltr inline-block font-mono text-xs">/api/health</span> ببینید و لاگ
+        Functionها را در Vercel بررسی کنید.
       </p>
       {error.digest ? (
         <p className="mt-2 text-[11px] text-slate-400">

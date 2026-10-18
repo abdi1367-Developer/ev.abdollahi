@@ -1,4 +1,5 @@
 /** POST /api/auth/login — ورود با نام کاربری و رمز عبور */
+import '@/lib/webcrypto-node';
 import { NextResponse } from 'next/server';
 import {
   SESSION_COOKIE,
@@ -8,6 +9,7 @@ import {
   sessionCookieOptions,
 } from '@/lib/session';
 import type { ApiErrorResponse, AuthResponse } from '@/lib/types';
+import { isKvConfigured } from '@/lib/store';
 import { authenticate } from '@/lib/users';
 
 export const runtime = 'nodejs';
@@ -102,8 +104,16 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('[api/auth/login] failed:', error);
+    // پیام خطا باید علت قابل رفع را بگوید؛ در Vercel شایع‌ترین علت، نبود
+    // AUTH_SECRET یا خطای اتصال KV است.
+    const hint =
+      error instanceof Error && /Web Crypto/i.test(error.message)
+        ? 'امضای کوکی نشست در این محیط ممکن نشد؛ متغیر محیطی AUTH_SECRET را تنظیم کنید.'
+        : isKvConfigured()
+          ? 'اتصال سرویس ذخیره‌سازی (KV/Upstash) را در متغیرهای محیطی بررسی کنید.'
+          : 'مقادیر AUTH_SECRET و ADMIN_PASSWORD را در متغیرهای محیطی بررسی کنید.';
     return NextResponse.json<ApiErrorResponse>(
-      { error: 'ورود به سامانه ناموفق بود. تنظیمات ذخیره‌سازی کاربران را بررسی کنید.' },
+      { error: `ورود به سامانه ناموفق بود. ${hint}` },
       { status: 500 },
     );
   }

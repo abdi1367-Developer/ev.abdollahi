@@ -155,13 +155,32 @@ export function toPublicUser(user: UserRecord): PublicUser {
   return publicUser;
 }
 
+let warnedAboutAdminPassword = false;
+
+/**
+ * رمز مدیر اولیه از متغیر محیطی. پیش‌تر اگر `ADMIN_PASSWORD` کوتاه‌تر از حد
+ * مجاز بود بی‌صدا نادیده گرفته می‌شد و کاربر با پیام گمراه‌کننده‌ی «نام
+ * کاربری یا رمز عبور نادرست» روبه‌رو می‌شد؛ حالا علت در لاگ سرور ثبت می‌شود.
+ */
+function adminPasswordFromEnv(): string {
+  const configured = process.env.ADMIN_PASSWORD || '';
+  if (configured.length >= MIN_PASSWORD_LENGTH) return configured;
+
+  if (!warnedAboutAdminPassword) {
+    warnedAboutAdminPassword = true;
+    console.warn(
+      configured
+        ? `[auth] ADMIN_PASSWORD کوتاه‌تر از ${MIN_PASSWORD_LENGTH} کاراکتر است و نادیده گرفته شد؛ رمز پیش‌فرض «admin123» استفاده می‌شود.`
+        : '[auth] ADMIN_PASSWORD تنظیم نشده است؛ رمز پیش‌فرض «admin123» استفاده می‌شود. برای Production آن را تنظیم کنید.',
+    );
+  }
+  return 'admin123';
+}
+
 function seedAdmin(): UserRecord {
   const usernameRaw = normalizeUsername(process.env.ADMIN_USERNAME || 'admin');
   const username = /^[a-z0-9][a-z0-9._-]{2,31}$/.test(usernameRaw) ? usernameRaw : 'admin';
-  const password =
-    process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length >= MIN_PASSWORD_LENGTH
-      ? process.env.ADMIN_PASSWORD
-      : 'admin123';
+  const password = adminPasswordFromEnv();
   const now = new Date().toISOString();
 
   return {

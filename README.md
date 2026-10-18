@@ -21,7 +21,7 @@
 - **صفحه‌ی «درباره ما»**: معرفی ابزار، معماری فنی، محدودیت‌ها و اعتبار طراح.
 - **آپلود و تبدیل**: پشتیبانی از `.docx` (با mammoth) و PDF (با unpdf) همراه با بررسی امضای فایل (magic bytes) و سقف حجم ۱۰ مگابایت. فایل‌های بالای ۴ مگابایت با Vercel Blob مستقیماً از مرورگر آپلود می‌شوند تا محدودیت ۴.۵ مگابایتی بدنه‌ی Serverless دور زده شود.
 - **پیش‌نمایش و دانلود Markdown** استخراج‌شده، همراه با آمار (تعداد کاراکتر، واژه و صفحات PDF).
-- **ارزیابی هوشمند** با زنجیره‌ی مدل‌ها: ابتدا مدل‌های رایگان OpenRouter و در صورت شکست، **DeepSeek** به‌عنوان جایگزین.
+- **ارزیابی هوشمند** با زنجیره‌ی مدل‌ها: مدل اصلی **DeepSeek** است و فقط در صورت شکست آن (و وجود کلید) مدل‌های رایگان OpenRouter امتحان می‌شوند.
 - **نمره‌ی وزنی محاسبه‌شده در سرور** (نه از خروجی مدل) تا نتیجه قابل اتکا باشد.
 - **گزارش ساختارمند**: نمره‌ی کل، نمره و وزن هر معیار، نقاط قوت/ضعف، خلاصه و پیشنهادهای اصلاحی.
 - **خروجی MD/JSON + کپی سریع** برای استفاده در ایمیل، گزارش یا مستندسازی.
@@ -32,9 +32,9 @@
 
 ## پیش‌نیازها
 
-- Node.js **۱۸.۱۷** یا بالاتر (پیشنهاد: ۲۰ LTS)
+- Node.js **۲۰** یا بالاتر (روی Vercel با `engines` روی ۲۲ تنظیم شده است)
 - npm (یا pnpm/yarn)
-- کلید API برای حداقل یکی از سرویس‌دهنده‌ها (OpenRouter و/یا DeepSeek)
+- کلید API دیپ‌سیک (`DEEPSEEK_API_KEY`) — مدل اصلی ارزیابی
 
 ---
 
@@ -48,9 +48,12 @@ npm install
 copy .env.example .env.local    # ویندوز
 # cp .env.example .env.local    # مک/لینوکس
 
-# ۳) کلیدها را در .env.local بگذارید (حداقل یکی)
-#    OPENROUTER_API_KEY=...
-#    DEEPSEEK_API_KEY=...
+# ۳) کلید DeepSeek را در .env.local بگذارید (مدل اصلی ارزیابی)
+#    DEEPSEEK_API_KEY=sk-...
+#    OPENROUTER_API_KEY=...   (اختیاری، فقط جایگزین)
+
+# ۳.۵) صحت کلید را بدون بالا آوردن برنامه بررسی کنید
+npm run ai:check
 
 # ۴) اجرای محیط توسعه
 npm run dev        # http://localhost:3000
@@ -80,8 +83,8 @@ npm run start
 
 | متغیر | الزامی | پیش‌فرض | توضیح |
 | --- | --- | --- | --- |
-| `OPENROUTER_API_KEY` | خیر* | — | مدل‌های رایگان OpenRouter (اولویت اول) |
-| `DEEPSEEK_API_KEY` | خیر* | — | جایگزین مطمئن در صورت شکست مدل رایگان |
+| `DEEPSEEK_API_KEY` | **بله** | — | مدل اصلی ارزیابی؛ بدون آن تحلیل انجام نمی‌شود |
+| `OPENROUTER_API_KEY` | خیر | — | اختیاری؛ مدل‌های رایگان OpenRouter فقط پس از شکست DeepSeek امتحان می‌شوند |
 | `DEEPSEEK_BASE_URL` | خیر | `https://api.deepseek.com` | آدرس API دیپ‌سیک |
 | `DEEPSEEK_MODEL` | خیر | `deepseek-chat` | نام مدل دیپ‌سیک |
 | `AUTH_SECRET` | **بله در Production** | مقدار توسعه | کلید امضای کوکی نشست؛ حتماً یک رشته‌ی تصادفی طولانی باشد |
@@ -97,8 +100,21 @@ npm run start
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | خیر | — | نام جایگزین Upstash |
 | `BLOB_READ_WRITE_TOKEN` | خیر | — | آپلود فایل‌های بالای ۴ مگابایت (Vercel Blob). اتصال Blob Store در Vercel این متغیر را خودکار به محیط پروژه اضافه می‌کند |
 
-\* حداقل یکی از `OPENROUTER_API_KEY` یا `DEEPSEEK_API_KEY` باید تنظیم شود، وگرنه تحلیل با پیام خطای
-شفاف رد می‌شود.
+\* بدون `DEEPSEEK_API_KEY` تحلیل با پیام خطای شفاف متوقف می‌شود (تنها در صورتی که
+`OPENROUTER_API_KEY` تنظیم شده باشد، تحلیل با مدل رایگان انجام می‌شود). صحت کلید را می‌توانید
+بدون اجرای برنامه با `npm run ai:check` بررسی کنید.
+
+### چرا پیام «کلید DeepSeek روی سرور خوانده نشد» می‌بینم؟
+
+1. **سرور را ری‌استارت نکرده‌اید**: Next.js متغیرهای `.env.local` را فقط در زمان راه‌اندازی
+   می‌خواند؛ پس از افزودن کلید، `npm run dev` را متوقف و دوباره اجرا کنید.
+2. **روی Vercel متغیر تنظیم نشده یا Redeploy نشده است**: پس از افزودن `DEEPSEEK_API_KEY` در
+   Settings → Environment Variables، یک استقرار تازه لازم است؛ استقرارهای قبلی متغیر جدید را
+   نمی‌بینند.
+3. **متغیر برای محیط اشتباه تنظیم شده**: برای Production و Preview جدا (یا All Environments)
+   تنظیم کنید.
+4. برای تشخیص سریع، `GET /api/health` را باز کنید: `ai.ready` باید `true` باشد و
+   `ai.deepseekModel` مدل استفاده‌شده را نشان می‌دهد.
 
 ---
 
@@ -196,8 +212,9 @@ middleware.ts               محافظت از صفحات و APIها
 | `POST` | `/api/history` | رکورد کامل ارزیابی | `{ backend, stored }` |
 | `GET` | `/api/history/[id]` | — | `{ backend, record }` |
 | `DELETE` | `/api/history/[id]` | — | `{ backend, deleted }` |
+| `GET` | `/api/health` | — | وضعیت محیط اجرا (نسخه Node، Web Crypto، منبع راز نشست، KV، کلیدها) |
 
-همه‌ی مسیرها به‌جز `/login`، `/about`، `/api/auth/login`، `/api/auth/logout` و `/api/auth/me` نیازمند نشست هستند. خطاها با ساختار یکسان
+همه‌ی مسیرها به‌جز `/login`، `/about`، `/api/auth/login`، `/api/auth/logout`، `/api/auth/me` و `/api/health` نیازمند نشست هستند. خطاها با ساختار یکسان
 `{ error, fieldErrors?, attempts? }` و کد وضعیت مناسب برمی‌گردند.
 
 ---
@@ -206,8 +223,9 @@ middleware.ts               محافظت از صفحات و APIها
 
 1. مخزن را به GitHub push کنید و در [vercel.com](https://vercel.com) پروژه را Import کنید (تنظیمات
    پیش‌فرض Next.js کافی است).
-2. در **Settings → Environment Variables** مقادیر `OPENROUTER_API_KEY` و/یا `DEEPSEEK_API_KEY` را
-   برای محیط‌های Production و Preview تنظیم کنید.
+2. در **Settings → Environment Variables** مقدار `DEEPSEEK_API_KEY` را برای محیط‌های Production و
+   Preview تنظیم کنید (مدل اصلی). `OPENROUTER_API_KEY` اختیاری است. پس از افزودن متغیرها حتماً
+   **Redeploy** کنید؛ استقرار فعلی متغیرهای جدید را نمی‌بیند.
 3. مقادیر `AUTH_SECRET` (رشته‌ی تصادفی طولانی)، `ADMIN_USERNAME` و `ADMIN_PASSWORD` را تنظیم کنید.
 4. برای سوابق و کاربران دائمی از **Storage / Marketplace** یک دیتابیس **Upstash Redis** متصل کنید؛
    متغیرهای `KV_REST_API_URL` و `KV_REST_API_TOKEN` خودکار اضافه می‌شوند و کاربران هم در KV ذخیره
@@ -219,6 +237,28 @@ middleware.ts               محافظت از صفحات و APIها
    `.env.local` بگذارید. فایل موقت پس از تبدیل از Blob حذف می‌شود.
 6. Deploy کنید. مسیرهای `/api/analyze` و `/api/convert` با `maxDuration = 60` اجرا می‌شوند؛ در پلن
    Hobby این سقف رعایت شده است.
+
+---
+
+## عیب‌یابی ورود روی Vercel
+
+اگر پس از استقرار، صفحه‌ی ورود باز نشد یا ورود انجام نشد، این ترتیب را بررسی کنید:
+
+1. **وضعیت محیط**: `https://<domain>/api/health` را باز کنید. اگر پاسخ نداد یا `status` برابر
+   `ok` نبود، مشکل از استقرار است؛ لاگ را در Vercel → Deployments → Functions ببینید.
+2. `auth.webCrypto` باید `true` باشد. اگر `false` بود یعنی Node قدیمی (۱۸) بدون Web Crypto global
+   اجرا شده است؛ `engines.node` در `package.json` روی `22.x` تنظیم شده و پس از Redeploy درست می‌شود.
+3. `auth.secretSource` باید `AUTH_SECRET` (یا دست‌کم `ADMIN_PASSWORD`) باشد. مقدار `fallback`
+   یعنی هیچ‌کدام تنظیم نشده‌اند و با هر Redeploy کوکی‌های قبلی بی‌اعتبار می‌شوند.
+4. `auth.adminPasswordConfigured` و `auth.adminPasswordLongEnough` را ببینید؛ رمز کوتاه‌تر از ۸
+   کاراکتر نادیده گرفته می‌شود و رمز پیش‌فرض `admin123` به کار می‌رود.
+5. اگر صفحه‌ی ورود به‌جای فرم خطای ۵۰۰ می‌دهد: Middleware و RootLayout اصلاح شده‌اند تا خطای
+   بررسی نشست کل سایت را از کار نیندازد؛ لاگ‌های `[middleware]`، `[layout]` و `[api/auth/login]`
+   علت دقیق را نشان می‌دهند.
+6. اگر ورود موفق است اما بلافاصله به `/login` برمی‌گردید، کوکی نشست ذخیره نشده است: حالت ناشناس،
+   مسدودکننده‌ی کوکی و HTTPS را بررسی کنید. برای کاربران پایدار بین Functionها، KV را وصل کنید.
+7. اگر روی دامنه‌ی Vercel صفحه‌ی «Log in to Vercel» دیده می‌شود، **Deployment Protection** روشن است؛
+   آن را در Settings → Deployment Protection غیرفعال کنید.
 
 ---
 
@@ -250,6 +290,7 @@ middleware.ts               محافظت از صفحات و APIها
 | `npm run build` | ساخت نسخه‌ی تولیدی |
 | `npm run start` | اجرای نسخه‌ی تولیدی |
 | `npm run typecheck` | بررسی تایپ‌ها بدون تولید خروجی |
+| `npm run ai:check` | بررسی صحت کلید DeepSeek بدون بالا آوردن برنامه |
 
 ---
 

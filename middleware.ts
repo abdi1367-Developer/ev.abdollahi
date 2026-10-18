@@ -4,7 +4,7 @@
  * جلوی دسترسی بدون کوکی معتبر را می‌گیریم.
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { SESSION_COOKIE, verifySessionToken } from '@/lib/session';
+import { SESSION_COOKIE, verifySessionToken, type SessionPayload } from '@/lib/session';
 
 const PUBLIC_PATHS = new Set([
   '/login',
@@ -12,6 +12,7 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
+  '/api/health',
 ]);
 
 /**
@@ -22,13 +23,31 @@ const PUBLIC_PATHS = new Set([
  */
 const SESSION_CHECKED_IN_HANDLER = new Set(['/api/blob/upload']);
 
+/**
+ * بررسی نشست هرگز نباید middleware را با خطا متوقف کند. اگر این بررسی خطا
+ * بدهد (مثلاً Web Crypto در دسترس نباشد یا متغیرهای محیطی ناقص باشند)،
+ * پاسخ ۵۰۰ برای همه‌ی مسیرها — از جمله `/login` — برگردانده می‌شد و
+ * صفحه‌ی ورود هرگز باز نمی‌شد. در این حالت کاربر را «بدون نشست» در نظر
+ * می‌گیریم تا صفحه‌ی ورود همیشه نمایش داده شود.
+ */
+async function readSession(token: string | undefined): Promise<SessionPayload | null> {
+  try {
+    return await verifySessionToken(token);
+  } catch (error) {
+    console.error('[middleware] session verification failed:', error);
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // مسیر با اسلش پایانی (مثل /login/) هم باید عمومی شناخته شود.
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') || '/' : pathname;
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = await verifySessionToken(token);
+  const session = await readSession(token);
 
-  if (PUBLIC_PATHS.has(pathname)) {
-    if (pathname === '/login' && session) {
+  if (PUBLIC_PATHS.has(path)) {
+    if (path === '/login' && session) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       url.search = '';
@@ -38,7 +57,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!session) {
-    if (SESSION_CHECKED_IN_HANDLER.has(pathname)) {
+    if (SESSION_CHECKED_IN_HANDLER.has(path)) {
       return NextResponse.next();
     }
 

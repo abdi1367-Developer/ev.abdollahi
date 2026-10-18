@@ -2,8 +2,9 @@
  * هماهنگ‌کننده‌ی تحلیل پایان‌نامه.
  *
  * ۱) متن فشرده می‌شود تا در پنجره‌ی مدل جا شود.
- * ۲) مدل‌های رایگان OpenRouter (حداکثر دو مدل) با مهلت مشخص امتحان می‌شوند.
- * ۳) اگر همه شکست بخورند یا مهلت تمام شود، DeepSeek به‌عنوان Fallback اجرا می‌شود.
+ * ۲) مدل اصلی DeepSeek است و اولین تلاش روی آن انجام می‌شود (DEEPSEEK_API_KEY).
+ * ۳) فقط اگر DeepSeek شکست بخورد و کلید OpenRouter تنظیم شده باشد، مدل‌های رایگان
+ *    OpenRouter امتحان می‌شوند و در پایان یک تلاش نهایی با DeepSeek انجام می‌شود.
  * ۴) پاسخ مدل نرمال‌سازی و نمره‌ی وزنی محاسبه می‌شود.
  * همه‌ی تلاش‌ها در `analysis.attempts` ثبت می‌شوند تا کاربر بداند از کدام مدل استفاده شده است.
  */
@@ -123,16 +124,85 @@ export async function analyzeThesis(input: {
   const openRouterKey = getOpenRouterApiKey();
   const deepSeek = getDeepSeekConfig();
 
-  if (!openRouterKey && !deepSeek) {
+  if (!deepSeek && !openRouterKey) {
+    console.error(
+      '[ai] DEEPSEEK_API_KEY در محیط اجرا خوانده نشد (process.env خالی است). ' +
+        'اگر تازه آن را در .env.local گذاشته‌اید سرور را دوباره اجرا کنید؛ در Vercel پس از ' +
+        'افزودن متغیر، Redeploy لازم است.',
+    );
     throw new AIError(
-      'هیچ کلید API برای مدل زبانی تنظیم نشده است. متغیرهای OPENROUTER_API_KEY یا DEEPSEEK_API_KEY را در محیط تنظیم کنید.',
+      'کلید DeepSeek روی سرور خوانده نشد. متغیر محیطی DEEPSEEK_API_KEY را تنظیم کنید؛ ' +
+        'برای اجرای محلی در فایل .env.local (و سپس ری‌استارت سرور) و برای Vercel در ' +
+        'Settings → Environment Variables برای محیط‌های Production و Preview (و سپس Redeploy). ' +
+        'وضعیت فعلی را می‌توانید در /api/health ببینید.',
       { kind: 'config', status: 500 },
     );
   }
 
   const deadline = startedAt + totalBudgetMs;
 
-  // ---------- مرحله ۱: مدل‌های رایگان OpenRouter ----------
+  // ---------- مرحله ۱: DeepSeek (مدل اصلی) ----------
+  if (deepSeek) {
+    const remaining = deadline - Date.now() - (openRouterKey ? reserveMs : 1000);
+    if (remaining < MIN_ATTEMPT_MS) {
+      context.attempts.push({
+        provider: 'deepseek',
+        model: deepSeek.model,
+        ok: false,
+        error: 'بودجه‌ی زمانی درخواست برای اجرای مدل اصلی کافی نبود.',
+      });
+    } else {
+      let raw = '';
+      try {
+        const timeoutMs = Math.min(remaining, reserveMs + 15000);
+        raw = await callDeepSeek({ config: deepSeek, messages, timeoutMs });
+        const report = normalizeReport(extractJson(raw), input.criteria);
+        context.attempts.push({ provider: 'deepseek', model: deepSeek.model, ok: true });
+        return buildResponse(report, 'deepseek', deepSeek.model, false, context);
+      } catch (error) {
+        const aiError = toAIError(error);
+        console.error('[ai] deepseek failed:', aiError.kind, aiError.message);
+
+        // اگر خروجی JSON معتبر نبود، یک تلاش اصلاحی محدود انجام می‌دهیم
+        if (aiError.kind === 'invalid_output' && raw.trim() && deadline - Date.now() > 12000) {
+          try {
+            const repairedRaw = await callDeepSeek({
+              config: deepSeek,
+              messages: buildRepairMessages(raw.slice(0, 24000)),
+              timeoutMs: Math.min(deadline - Date.now(), 20000),
+            });
+            const report = normalizeReport(extractJson(repairedRaw), input.criteria);
+            context.attempts.push({
+              provider: 'deepseek',
+              model: deepSeek.model,
+              ok: true,
+              error: 'پاسخ اولیه نامعتبر بود و با تلاش اصلاحی بازیابی شد.',
+            });
+            return buildResponse(report, 'deepseek', deepSeek.model, false, context);
+          } catch (repairError) {
+            const repairAI = toAIError(repairError);
+            context.attempts.push({
+              provider: 'deepseek',
+              model: deepSeek.model,
+              ok: false,
+              status: repairAI.upstreamStatus ?? repairAI.status,
+              error: repairAI.message,
+            });
+          }
+        } else {
+          context.attempts.push({
+            provider: 'deepseek',
+            model: deepSeek.model,
+            ok: false,
+            status: aiError.upstreamStatus ?? aiError.status,
+            error: aiError.message,
+          });
+        }
+      }
+    }
+  }
+
+  // ---------- مرحله ۲: مدل‌های رایگان OpenRouter (فقط اگر کلیدش تنظیم شده باشد) ----------
   if (openRouterKey) {
     const freeModels = await discoverFreeModels(MAX_FREE_ATTEMPTS);
 
@@ -145,7 +215,8 @@ export async function analyzeThesis(input: {
         const content = await callOpenRouter({ apiKey: openRouterKey, model, messages, timeoutMs });
         const report = normalizeReport(extractJson(content), input.criteria);
         context.attempts.push({ provider: 'openrouter', model, ok: true });
-        return buildResponse(report, 'openrouter', model, false, context);
+        // مدل اصلی DeepSeek است؛ موفقیت OpenRouter یعنی استفاده از جایگزین
+        return buildResponse(report, 'openrouter', model, true, context);
       } catch (error) {
         const aiError = toAIError(error);
         context.attempts.push({
@@ -162,15 +233,15 @@ export async function analyzeThesis(input: {
     }
   }
 
-  // ---------- مرحله ۲: DeepSeek به‌عنوان Fallback ----------
-  if (deepSeek) {
+  // ---------- مرحله ۳: تلاش نهایی با DeepSeek (فقط اگر OpenRouter هم امتحان شده باشد) ----------
+  if (deepSeek && openRouterKey) {
     const remaining = deadline - Date.now();
     if (remaining < MIN_ATTEMPT_MS) {
       context.attempts.push({
         provider: 'deepseek',
         model: deepSeek.model,
         ok: false,
-        error: 'بودجه‌ی زمانی درخواست پیش از رسیدن به DeepSeek تمام شد.',
+        error: 'بودجه‌ی زمانی درخواست پیش از تلاش نهایی با DeepSeek تمام شد.',
       });
     } else {
       let raw = '';
