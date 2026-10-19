@@ -19,8 +19,20 @@ const JSON_SHAPE = `{
       "name": "اصالت و نوآوری",
       "score": 72,
       "reasoning": "۲ تا ۴ جمله تحلیلی همراه با شاهد مشخص از متن",
-      "strengths": ["نقطه قوت مشخص", "..."],
-      "weaknesses": ["نقطه ضعف مشخص", "..."]
+      "strengths": [
+        "نقطه قوت ۱ — با اشاره به فصل/بخش یا شاهد مشخص",
+        "نقطه قوت ۲",
+        "نقطه قوت ۳",
+        "نقطه قوت ۴",
+        "نقطه قوت ۵"
+      ],
+      "weaknesses": [
+        "نقطه ضعف ۱ — با اشاره به فصل/بخش و پیشنهاد اصلاح",
+        "نقطه ضعف ۲",
+        "نقطه ضعف ۳",
+        "نقطه ضعف ۴",
+        "نقطه ضعف ۵"
+      ]
     }
   ],
   "summary": "جمع‌بندی کلی ۳ تا ۵ جمله‌ای درباره کیفیت پایان‌نامه",
@@ -61,7 +73,8 @@ ${criteriaBlock(criteria)}
 ۶. لحن گزارش، دانشگاهی، سازنده و بدون تعارف بی‌مورد باشد؛ نقاط ضعف را روشن اما محترمانه بیان کن.
 ۷. همه‌ی مقادیر متنی باید فارسی روان باشند (اصطلاحات فنی انگلیسی را می‌توانی در پرانتز بیاوری).
 ۸. «top_recommendations» باید ۳ تا ۷ پیشنهاد عملی، اولویت‌دار و قابل اجرا باشد، نه توصیه‌ی کلی.
-۹. خروجی تو فقط و فقط یک شیء JSON معتبر است؛ بدون هیچ متن اضافه، بدون توضیح بیرون از JSON و بدون بلوک کد Markdown.
+۹. برای هر معیار دقیقاً پنج «نقطه قوت» (strengths) و پنج «نقطه ضعف» (weaknesses) بنویس. هر مورد باید یک جمله‌ی کوتاه، مشخص و مستند باشد (با اشاره به فصل/بخش یا شاهد متن). هرگز این دو آرایه را خالی، کمتر از پنج مورد یا با جمله‌های تکراری برنگردان.
+۱۰. خروجی تو فقط و فقط یک شیء JSON معتبر است؛ بدون هیچ متن اضافه، بدون توضیح بیرون از JSON و بدون بلوک کد Markdown.
 
 ## قالب خروجی (کلیدها را عیناً حفظ کن)
 ${JSON_SHAPE}
@@ -72,7 +85,7 @@ ${JSON_SHAPE}
 function rubricReminder(criteria: CriterionDefinition[]): string {
   return `یادآوری: خروجی فقط JSON معتبر با کلیدهای overall_score، criteria (شامل هر ${criteria.length.toLocaleString(
     'fa-IR',
-  )} معیار)، summary و top_recommendations باشد.`;
+  )} معیار و برای هر معیار دقیقاً ۵ نقطه قوت و ۵ نقطه ضعف)، summary و top_recommendations باشد.`;
 }
 
 function metaBlock(meta: ThesisMeta): string {
@@ -174,7 +187,7 @@ export function buildRepairMessages(rawOutput: string): ChatMessage[] {
     },
     {
       role: 'user',
-      content: `خروجی زیر باید به JSON معتبر با کلیدهای overall_score، criteria (آرایه‌ای از اشیاء با name/score/reasoning/strengths/weaknesses)، summary و top_recommendations تبدیل شود. مقادیر را تغییر نده، فقط ساختار را اصلاح کن.\n\n<<<OUTPUT>>>\n${rawOutput}\n<<<END_OUTPUT>>>`,
+      content: `خروجی زیر باید به JSON معتبر با کلیدهای overall_score، criteria (آرایه‌ای از اشیاء با name/score/reasoning/strengths/weaknesses)، summary و top_recommendations تبدیل شود. مقادیر را تغییر نده، فقط ساختار را اصلاح کن. اگر آرایه‌ی strengths یا weaknesses کمتر از ۵ مورد داشت، بر پایه‌ی همان تحلیل موجود تا ۵ مورد کامل کن.\n\n<<<OUTPUT>>>\n${rawOutput}\n<<<END_OUTPUT>>>`,
     },
   ];
 }

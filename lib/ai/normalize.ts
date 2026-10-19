@@ -7,6 +7,8 @@
  * و نمره‌ی کل را به‌صورت «میانگین وزنی» محاسبه می‌کند (نه نمره‌ی سلیقه‌ای مدل).
  */
 import { CRITERIA, matchesCriterion, type CriterionDefinition } from '../criteria';
+import { MIN_BULLETS, ensureReportBullets } from '../bullets';
+import { normalizePersianSpacing } from '../persian';
 import type { CriterionResult, EvaluationReport } from '../types';
 import { AIError } from './errors';
 
@@ -30,7 +32,8 @@ function pickString(record: Record<string, unknown>, keys: string[], maxLength: 
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) {
-      return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+      // فاصله‌گذاری فارسی اصلاح می‌شود تا کلمات در خروجی به هم نچسبند
+      return normalizePersianSpacing(value).replace(/\s+/g, ' ').trim().slice(0, maxLength);
     }
   }
   return '';
@@ -52,10 +55,15 @@ export function toStringArray(value: unknown, max = 5, maxLength = 400): string[
       text = pickString(record, ['text', 'description', 'point', 'title', 'item', 'value'], maxLength);
     }
 
-    // امکان جداسازی چند مورد با «؛» یا خط جدید در یک رشته
-    const parts = text.split(/[؛\n]+/);
+    // امکان جداسازی چند مورد با «؛»، خط جدید یا نشانه‌ی بولت در یک رشته
+    const parts = text.split(/[؛\n•●▪◦‣]+/);
     for (const part of parts) {
-      const cleaned = part.replace(/^[-•*\d.)\s]+/, '').replace(/\s+/g, ' ').trim();
+      const cleaned = normalizePersianSpacing(
+        // شماره‌گذاری لاتین و فارسی ابتدای آیتم حذف می‌شود («۱.»، «-»، «•»)
+        part.replace(/^[-–—•*\d۰-۹.)\s]+/, ''),
+      )
+        .replace(/\s+/g, ' ')
+        .trim();
       if (cleaned.length > 1 && !result.includes(cleaned.slice(0, maxLength))) {
         result.push(cleaned.slice(0, maxLength));
       }
@@ -64,6 +72,19 @@ export function toStringArray(value: unknown, max = 5, maxLength = 400): string[
   }
 
   return result;
+}
+
+/**
+ * اولین آرایه‌ی غیرخالی از میان چند کلید احتمالی.
+ * مدل‌ها ممکن است کلیدها را فارسی یا با نام دیگری برگردانند و کلید اول را
+ * خالی بگذارند؛ استفاده از `??` در این حالت آرایه‌ی خالی را برمی‌گرداند.
+ */
+function firstFilledArray(record: Record<string, unknown>, keys: string[]): string[] {
+  for (const key of keys) {
+    const items = toStringArray(record[key], MIN_BULLETS + 3);
+    if (items.length) return items;
+  }
+  return [];
 }
 
 /** تبدیل نمره‌ی مدل (عدد، رشته، درصد، ارقام فارسی) به عدد ۰ تا ۱۰۰ */
@@ -227,14 +248,34 @@ export function normalizeReport(
     }
 
     const entry = entries[index];
-    const strengths = toStringArray(
-      entry.strengths ?? entry.pros ?? entry.positives ?? entry.points_for,
-      5,
-    );
-    const weaknesses = toStringArray(
-      entry.weaknesses ?? entry.cons ?? entry.issues ?? entry.gaps ?? entry.improvements,
-      5,
-    );
+    // کلیدهای متعدد (فارسی و انگلیسی) بررسی می‌شوند تا آرایه‌ی خالی باعث
+    // خالی‌ماندن بخش «نقاط قوت/ضعف» نشود.
+    const strengths = firstFilledArray(entry, [
+      'strengths',
+      'strength',
+      'pros',
+      'positives',
+      'points_for',
+      'merits',
+      'advantages',
+      'نقاط قوت',
+      'نقاط_قوت',
+    ]);
+    const weaknesses = firstFilledArray(entry, [
+      'weaknesses',
+      'weakness',
+      'cons',
+      'issues',
+      'gaps',
+      'improvements',
+      'drawbacks',
+      'limitations',
+      'flaws',
+      'نقاط ضعف',
+      'نقاط_ضعف',
+      'نقاط قابل بهبود',
+      'نقاط_قابل_بهبود',
+    ]);
 
     let reasoning = pickString(
       entry,
@@ -287,10 +328,11 @@ export function normalizeReport(
     );
   }
 
-  return {
+  // تضمین حداقل ۵ نقطه قوت و ۵ نقطه ضعف برای هر معیار (حتی اگر مدل کمتر داده باشد)
+  return ensureReportBullets({
     overall_score: overallScore,
     criteria,
     summary,
     top_recommendations: recommendations,
-  };
+  });
 }

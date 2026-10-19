@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { polishPersianMarkdown } from '@/lib/persian';
 
 interface MarkdownViewProps {
   content: string;
@@ -10,6 +12,9 @@ interface MarkdownViewProps {
 
 /** نمایش Markdown با استایل فارسی/RTL (بدون افزونه‌ی typography) */
 export function MarkdownView({ content, className = '' }: MarkdownViewProps) {
+  // فاصله‌گذاری فارسی پیش از رندر اصلاح می‌شود تا کلمات به هم نچسبند
+  const normalized = useMemo(() => polishPersianMarkdown(content), [content]);
+
   return (
     <div className={`markdown-body ${className}`} dir="rtl">
       <ReactMarkdown
@@ -27,7 +32,7 @@ export function MarkdownView({ content, className = '' }: MarkdownViewProps) {
           },
         }}
       >
-        {content}
+        {normalized}
       </ReactMarkdown>
     </div>
   );

@@ -9,6 +9,8 @@ import type {
   TemplateSnapshot,
   ThesisMeta,
 } from './types';
+import { ensureReportBullets } from './bullets';
+import { polishPersianMarkdown } from './persian';
 import { faNumber, formatFaDate } from './format';
 import { formatJalaliIso, isoToJalali } from './jalali';
 
@@ -35,7 +37,9 @@ function providerLabel(provider: string): string {
 
 /** گزارش خوانا به‌صورت Markdown (قابل استفاده در Word/Notion/GitHub) */
 export function reportToMarkdown(input: ReportExportInput): string {
-  const { meta, report, analysis, convert, createdAt, instructions, template } = input;
+  const { meta, report: rawReport, analysis, convert, createdAt, instructions, template } = input;
+  // حتی گزارش‌های قدیمی ذخیره‌شده هم در خروجی حداقل ۵ نقطه قوت/ضعف دارند
+  const report = ensureReportBullets(rawReport);
   const lines: string[] = [];
 
   lines.push('# گزارش ارزیابی پایان‌نامه');
@@ -133,7 +137,8 @@ export function reportToMarkdown(input: ReportExportInput): string {
   lines.push('');
   lines.push('> این گزارش با کمک هوش مصنوعی تهیه شده است و جایگزین داوری رسمی انسانی نیست.');
 
-  return lines.join('\n');
+  // اصلاح نهایی فاصله‌گذاری فارسی (بدون دست‌زدن به بلوک‌های کد)
+  return polishPersianMarkdown(lines.join('\n'));
 }
 
 /** خروجی JSON برای بایگانی یا پردازش‌های بعدی */
@@ -144,7 +149,7 @@ export function reportToJsonObject(input: ReportExportInput) {
     evaluationDate: input.createdAt,
     instructions: input.instructions ?? null,
     template: input.template ?? null,
-    report: input.report,
+    report: ensureReportBullets(input.report),
     analysis: input.analysis ?? null,
     source: input.convert ?? null,
     generator: 'thesis-evaluator',

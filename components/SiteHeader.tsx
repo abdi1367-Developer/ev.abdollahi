@@ -9,9 +9,11 @@ import {
   ChartIcon,
   InfoIcon,
   LogoutIcon,
+  MenuIcon,
   ShieldIcon,
   SparklesIcon,
   UserIcon,
+  XIcon,
 } from './Icons';
 import { ThemeToggle } from './ThemeToggle';
 import { SiteLogo } from './SiteLogo';
@@ -41,9 +43,13 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
   const router = useRouter();
   const [user, setUser] = useState<PublicUser | null>(initialUser);
   const [loggingOut, setLoggingOut] = useState(false);
+  /** منوی موبایل؛ فقط زیر ۶۴۰ پیکسل استفاده می‌شود و روی دسکتاپ رندر نمی‌شود */
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // با تغییر مسیر، منوی موبایل بسته می‌شود
+    setMenuOpen(false);
 
     const syncUser = async () => {
       try {
@@ -110,7 +116,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
           <nav
             aria-label="ناوبری اصلی"
-            className="flex min-w-0 items-center gap-1 overflow-x-auto text-xs sm:text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="hidden min-w-0 items-center gap-1 overflow-x-auto text-xs lg:flex lg:text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {navItems.map((item) => {
               const active =
@@ -137,12 +143,12 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
           </nav>
 
           <span
-            className="mx-1 hidden h-6 w-px bg-slate-200 sm:block dark:bg-white/10"
+            className="mx-1 hidden h-6 w-px bg-slate-200 lg:block dark:bg-white/10"
             aria-hidden="true"
           />
 
           {user ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="hidden shrink-0 items-center gap-2 lg:flex">
               <span className="hidden items-center gap-1.5 rounded-xl bg-slate-900/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 md:inline-flex dark:bg-white/10 dark:text-slate-200">
                 <UserIcon className="h-3.5 w-3.5" />
                 {user.displayName}
@@ -168,7 +174,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
               href="/login"
               aria-current={onLoginPage ? 'page' : undefined}
               title="ورود به حساب کاربری"
-              className={`btn-secondary shrink-0 px-3 py-2 text-xs ${
+              className={`btn-secondary hidden shrink-0 px-3 py-2 text-xs lg:inline-flex ${
                 onLoginPage ? 'ring-2 ring-orange-400/40 dark:ring-orange-400/30' : ''
               }`}
             >
@@ -177,9 +183,103 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
             </Link>
           )}
 
-          <ThemeToggle />
+          <span className="hidden lg:inline-flex">
+            <ThemeToggle />
+          </span>
+
+          {/* دکمه‌ی منوی موبایل — فقط زیر ۱۰۲۴ پیکسل (lg) دیده می‌شود */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+            title={menuOpen ? 'بستن منو' : 'منو'}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/60 bg-white/70 text-slate-700 shadow-sm backdrop-blur transition hover:border-indigo-200 hover:text-indigo-700 lg:hidden dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:border-indigo-400/40 dark:hover:text-amber-200"
+          >
+            {menuOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+
+      {/* منوی موبایل: همه‌ی دکمه‌های نوار بالا در یک منو جمع می‌شوند */}
+      {menuOpen ? (
+        <div
+          id="mobile-nav"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/60 bg-white/90 px-4 pb-4 pt-2 backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-slate-950/90"
+        >
+          <nav aria-label="ناوبری موبایل" className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const active =
+                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                    active
+                      ? 'bg-indigo-500/10 text-indigo-700 shadow-sm ring-1 ring-indigo-500/20 dark:bg-indigo-400/15 dark:text-indigo-200 dark:ring-indigo-400/25'
+                      : 'text-slate-700 hover:bg-slate-900/5 dark:text-slate-200 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {Icon ? <Icon className="h-4 w-4" /> : null}
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="my-3 h-px bg-slate-200 dark:bg-white/10" aria-hidden="true" />
+
+          <div className="flex items-center justify-between gap-2 px-1">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">حالت نمایش</span>
+            <ThemeToggle />
+          </div>
+
+          <div className="mt-3">
+            {user ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-900/5 px-3 py-2 dark:bg-white/10">
+                <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <UserIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{user.displayName}</span>
+                  {user.role === 'admin' ? (
+                    <span className="shrink-0 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] text-orange-700 dark:text-orange-200">
+                      مدیر
+                    </span>
+                  ) : null}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void handleLogout();
+                  }}
+                  disabled={loggingOut}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/10 disabled:opacity-60 dark:text-rose-300"
+                >
+                  <LogoutIcon className="h-4 w-4" />
+                  <span>{loggingOut ? 'در حال خروج…' : 'خروج'}</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                aria-current={onLoginPage ? 'page' : undefined}
+                className={`btn-secondary w-full justify-center px-3 py-2 text-sm ${
+                  onLoginPage ? 'ring-2 ring-orange-400/40 dark:ring-orange-400/30' : ''
+                }`}
+              >
+                <UserIcon className="h-4 w-4" />
+                <span>ورود</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { copyToClipboard, downloadJson, downloadMarkdown } from '@/lib/download';
 import { buildDownloadName, faNumber, formatFaDate } from '@/lib/format';
+import { ensureReportBullets } from '@/lib/bullets';
 import { reportToJsonObject, reportToMarkdown } from '@/lib/report';
 import { scoreTone } from '@/lib/ui';
 import type {
@@ -46,7 +47,7 @@ function clampScore(value: number): number {
 
 export function ReportView({
   meta,
-  report,
+  report: rawReport,
   analysis,
   convert,
   createdAt,
@@ -56,6 +57,8 @@ export function ReportView({
   onNewEvaluation,
 }: ReportViewProps) {
   const [copied, setCopied] = useState(false);
+  // گزارش‌های قدیمی ذخیره‌شده هم حداقل ۵ نقطه قوت/ضعف برای هر معیار نمایش می‌دهند
+  const report = useMemo(() => ensureReportBullets(rawReport), [rawReport]);
 
   const exportInput = useMemo(
     () => ({
