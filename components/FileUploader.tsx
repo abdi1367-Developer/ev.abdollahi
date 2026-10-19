@@ -5,7 +5,12 @@ import { getApiError, readJsonSafe } from '@/lib/api';
 import { downloadMarkdown } from '@/lib/download';
 import { buildDownloadName, faNumber, formatBytes } from '@/lib/format';
 import type { ApiErrorResponse, ConvertInfo, ConvertResponse, ThesisMeta } from '@/lib/types';
-import { MAX_DIRECT_UPLOAD_BYTES, MAX_DIRECT_UPLOAD_LABEL, MAX_FILE_BYTES, MAX_FILE_LABEL } from '@/lib/upload';
+import {
+  BLOB_UPLOAD_THRESHOLD_BYTES,
+  BLOB_UPLOAD_THRESHOLD_LABEL,
+  MAX_FILE_BYTES,
+  MAX_FILE_LABEL,
+} from '@/lib/upload';
 import {
   AlertIcon,
   ArrowLeftIcon,
@@ -75,7 +80,7 @@ export function FileUploader({
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError(`حجم فایل باید کمتر از ${MAX_FILE_LABEL} باشد.`);
+      setError(`حجم فایل نباید بیشتر از ${MAX_FILE_LABEL} باشد.`);
       return;
     }
 
@@ -83,7 +88,7 @@ export function FileUploader({
     try {
       let response: Response;
 
-      if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
+      if (file.size > BLOB_UPLOAD_THRESHOLD_BYTES) {
         // فایل‌های بزرگ‌تر از سقف بدنه‌ی Vercel باید مستقیم از مرورگر به Blob بروند.
         const { upload } = await import('@vercel/blob/client');
         const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-90) || 'thesis-file';
@@ -117,13 +122,36 @@ export function FileUploader({
     } catch (error) {
       console.error('[FileUploader] upload failed:', error);
       const detail = error instanceof Error ? error.message : '';
-      if (/401|403|unauthorized|forbidden|login|session|وارد حساب|نشست/i.test(detail)) {
-        // توکن آپلود فقط برای کاربر واردشده صادر می‌شود.
+      if (file.size > BLOB_UPLOAD_THRESHOLD_BYTES) {
+        // اگر Vercel Blob در دسترس نباشد (مثلاً اجرای محلی بدون توکن)، آپلود
+        // مستقیم را تا سقف مجاز امتحان می‌کنیم. روی Vercel این مسیر برای
+        // فایل‌های بزرگ‌تر از ۴.۵ مگابایت با خطای 413 پاسخ می‌دهد.
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const fallbackResponse = await fetch('/api/convert', { method: 'POST', body: formData });
+          const fallbackPayload = await readJsonSafe<ConvertResponse & ApiErrorResponse>(fallbackResponse);
+
+          if (fallbackResponse.ok && fallbackPayload && typeof fallbackPayload.markdown === 'string') {
+            onConverted({ markdown: fallbackPayload.markdown, info: fallbackPayload.info });
+            return;
+          }
+
+          if (fallbackResponse.status === 401 || fallbackResponse.status === 403) {
+            // توکن آپلود فقط برای کاربر واردشده صادر می‌شود.
+            setError('نشست شما منقضی شده است. لطفاً دوباره وارد شوید و سپس فایل را آپلود کنید.');
+          } else if (fallbackResponse.status === 413) {
+            setError(
+              `آپلود مستقیم فایل‌های بزرگ‌تر از ${BLOB_UPLOAD_THRESHOLD_LABEL} در Vercel ممکن نیست؛ برای فایل‌های تا ${MAX_FILE_LABEL} باید Vercel Blob را فعال کنید.`,
+            );
+          } else {
+            setError(getApiError(fallbackPayload, 'آپلود فایل ناموفق بود. لطفاً دوباره تلاش کنید.'));
+          }
+        } catch {
+          setError('ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.');
+        }
+      } else if (/401|403|unauthorized|forbidden|login|session|وارد حساب|نشست/i.test(detail)) {
         setError('نشست شما منقضی شده است. لطفاً دوباره وارد شوید و سپس فایل را آپلود کنید.');
-      } else if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
-        setError(
-          'آپلود فایل بزرگ ناموفق بود. برای فایل‌های بالای ۴ مگابایت، باید Vercel Blob در بخش Storage پروژه فعال و به پروژه متصل باشد.',
-        );
       } else {
         setError('ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.');
       }
@@ -152,9 +180,6 @@ export function FileUploader({
       <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs leading-6 text-sky-900">
         <p className="font-semibold">
           حداکثر {MAX_FILE_LABEL} — فقط .docx و .pdf
-        </p>
-        <p className="mt-0.5 text-[11px] leading-5 text-sky-800/80">
-          فایل‌های تا {MAX_DIRECT_UPLOAD_LABEL} مستقیم ارسال می‌شوند و فایل‌های بزرگ‌تر از طریق Vercel Blob آپلود می‌شوند.
         </p>
       </div>
 

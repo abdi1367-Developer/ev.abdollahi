@@ -66,7 +66,7 @@ const ARCHITECTURE = [
   {
     icon: FileTextIcon,
     title: 'لایه‌ی پردازش متن',
-    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۱۰ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات. فایل‌های بزرگ‌تر از ۴ مگابایت از طریق Vercel Blob مستقیماً از مرورگر آپلود می‌شوند.',
+    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۱۰ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات. فایل‌های بزرگ‌تر از ۴ مگابایت ابتدا از طریق Vercel Blob و در نبود آن به‌صورت مستقیم (تا سقف ۱۰ مگابایت) آپلود می‌شوند.',
   },
   {
     icon: SparklesIcon,
