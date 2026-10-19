@@ -327,6 +327,16 @@ ${styleSheets}
                 <PrintIcon className="h-4 w-4" />
                 پرینت گزارش
               </button>
+              {onNewEvaluation ? (
+                <button
+                  type="button"
+                  className="btn-secondary !py-2 text-xs"
+                  onClick={onNewEvaluation}
+                >
+                  <ArrowRightIcon className="h-4 w-4" />
+                  ارزیابی جدید
+                </button>
+              ) : null}
               {storageBackend ? (
                 <span className="inline-flex items-center gap-1 rounded-xl bg-slate-900/5 px-2.5 py-1.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
                   <ShieldIcon className="h-3.5 w-3.5" />

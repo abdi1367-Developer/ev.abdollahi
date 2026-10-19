@@ -1,6 +1,6 @@
 import { Wizard } from '@/components/Wizard';
+import { StartEvaluationLink } from '@/components/StartEvaluationLink';
 import {
-  ArrowLeftIcon,
   ChartIcon,
   CheckIcon,
   FileTextIcon,
@@ -40,10 +40,7 @@ export default function HomePage() {
               تحلیل معیارمحور، نمودارهای تحلیلی و خروجی قابل ارائه.
             </p>
 
-            <a href="#evaluation" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-orange-700 shadow-lg transition hover:bg-orange-50 sm:text-sm">
-              شروع ارزیابی
-              <ArrowLeftIcon className="h-4 w-4" />
-            </a>
+            <StartEvaluationLink />
           </div>
 
           <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">

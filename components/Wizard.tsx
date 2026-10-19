@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { readJsonSafe } from '@/lib/api';
+import { START_EVALUATION_EVENT } from '@/lib/evaluation-events';
 import { saveLocalRecord } from '@/lib/local-store';
 import { capMarkdown } from '@/lib/record';
 import {
@@ -52,6 +53,9 @@ export function Wizard() {
   const [createdAt, setCreatedAt] = useState('');
   const [recordId, setRecordId] = useState('');
   const [storageBackend, setStorageBackend] = useState<'kv' | 'local' | null>(null);
+  // هر بار که «ارزیابی جدید» زده می‌شود یک شمارنده افزایش می‌یابد تا اسکرول
+  // دقیقاً بعد از رندر شدن مرحله‌ی قالب اجرا شود.
+  const [resetCount, setResetCount] = useState(0);
 
   // انتخاب قالب ذخیره‌شده فقط پس از mount خوانده می‌شود تا رندر سرور و کلاینت یکسان بماند.
   useEffect(() => {
@@ -129,7 +133,7 @@ export function Wizard() {
     void persistRecord(record);
   };
 
-  const resetAll = () => {
+  const resetAll = useCallback(() => {
     setStep('template');
     setErrors({});
     setMarkdown('');
@@ -139,8 +143,30 @@ export function Wizard() {
     setCreatedAt('');
     setRecordId('');
     setStorageBackend(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    setResetCount((value) => value + 1);
+  }, []);
+
+  // دکمه‌ی «شروع ارزیابی» در بنر صفحه‌ی اصلی (و هر دکمه‌ی بیرون از ویزارد)
+  // با این رویداد، ویزارد را به مرحله‌ی اول برمی‌گرداند.
+  useEffect(() => {
+    const handleStartEvaluation = () => resetAll();
+    window.addEventListener(START_EVALUATION_EVENT, handleStartEvaluation);
+    return () => window.removeEventListener(START_EVALUATION_EVENT, handleStartEvaluation);
+  }, [resetAll]);
+
+  // اسکرول باید بعد از رندر شدن مرحله‌ی قالب انجام شود؛ وگرنه صفحه‌ی بلندِ
+  // گزارش هنوز در DOM است و مرورگر ممکن است در پایین صفحه بماند.
+  useEffect(() => {
+    if (resetCount === 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById('evaluation');
+      if (target) target.scrollIntoView({ block: 'start', behavior: 'auto' });
+      else window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [resetCount]);
 
   const activeIndex = step === 'report' ? STEP_ITEMS.length : STEP_ITEMS.findIndex((item) => item.key === step);
 
