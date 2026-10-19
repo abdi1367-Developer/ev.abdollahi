@@ -29,6 +29,7 @@ export function summarizeRecord(record: EvaluationRecord): HistorySummary {
     model: record.analysis.model,
     fileType: record.convert.fileType,
     templateName: record.template?.name,
+    mode: record.report.mode ?? record.mode,
     criteria: record.report.criteria.map((criterion) => ({
       name: criterion.name,
       score: Number(criterion.score) || 0,

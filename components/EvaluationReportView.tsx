@@ -6,11 +6,13 @@ import { buildDownloadName, faNumber, formatFaDate } from '@/lib/format';
 import { reportToJsonObject, polishReport, reportToMarkdown } from '@/lib/report';
 import { ensureReportBullets } from '@/lib/bullets';
 import { formatJalaliIso } from '@/lib/jalali';
+import { findEvaluationMode } from '@/lib/evaluation-mode';
 import { scoreTone } from '@/lib/ui';
 import type {
   AnalysisInfo,
   ConvertInfo,
   CriterionResult,
+  EvaluationMode,
   EvaluationReport,
   ThesisMeta,
 } from '@/lib/types';
@@ -41,6 +43,8 @@ export interface ReportViewProps {
   storageBackend?: 'kv' | 'local' | null;
   instructions?: string;
   templateName?: string;
+  /** حالت (نوع) ارزیابی؛ اگر خالی باشد از خود گزارش خوانده می‌شود */
+  mode?: EvaluationMode;
   onNewEvaluation?: () => void;
 }
 
@@ -71,11 +75,16 @@ export function EvaluationReportView({
   storageBackend,
   instructions,
   templateName,
+  mode,
   onNewEvaluation,
 }: ReportViewProps) {
   const [copied, setCopied] = useState(false);
   // گزارش‌های قدیمی ذخیره‌شده هم حداقل ۵ نقطه قوت/ضعف برای هر معیار نمایش می‌دهند
   const report = useMemo(() => ensureReportBullets(polishReport(rawReport)), [rawReport]);
+
+  // حالت ارزیابی: اولویت با مقدار ثبت‌شده در خود گزارش است
+  const appliedMode = report.mode ?? mode;
+  const modeDefinition = appliedMode ? findEvaluationMode(appliedMode) : null;
 
   const exportInput = useMemo(
     () => ({
@@ -85,6 +94,7 @@ export function EvaluationReportView({
       convert,
       createdAt,
       instructions,
+      mode: appliedMode,
       template: templateName
         ? {
             id: 'report-template',
@@ -96,7 +106,7 @@ export function EvaluationReportView({
           }
         : undefined,
     }),
-    [meta, report, analysis, convert, createdAt, instructions, templateName],
+    [meta, report, analysis, convert, createdAt, instructions, templateName, appliedMode],
   );
 
   const markdownReport = useMemo(() => reportToMarkdown(exportInput), [exportInput]);
@@ -250,6 +260,12 @@ ${styleSheets}
                   {templateName}
                 </span>
               ) : null}
+              {modeDefinition ? (
+                <span className={modeDefinition.chipClass}>
+                  <TargetIcon className="h-3.5 w-3.5" />
+                  ارزیابی {modeDefinition.label}
+                </span>
+              ) : null}
               {meta.degree ? <span className="chip">{meta.degree}</span> : null}
               {createdAt ? (
                 <span className="chip">
@@ -271,6 +287,16 @@ ${styleSheets}
             </div>
 
             <p className="text-[13px] leading-7 text-slate-600 dark:text-slate-300">{report.summary}</p>
+
+            {modeDefinition ? (
+              <p className="rounded-xl bg-slate-50 px-3 py-2 text-[11px] leading-6 text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
+                <span className="font-bold text-slate-800 dark:text-slate-100">
+                  نوع ارزیابی: {modeDefinition.label}
+                </span>
+                {' — '}
+                {modeDefinition.description} بازه‌ی معمول نمره در این حالت {modeDefinition.expectedRange} از ۱۰۰ است.
+              </p>
+            ) : null}
 
             <div className="flex flex-wrap gap-2">
               <button

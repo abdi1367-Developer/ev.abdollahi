@@ -20,8 +20,9 @@ export interface BulletContext {
 
 const SCORE_BANDS: Array<{ min: number; label: string }> = [
   { min: 90, label: 'در حد انتشار در مجله/همایش معتبر' },
-  { min: 75, label: 'خوب و منسجم' },
-  { min: 60, label: 'قابل قبول با نیاز به بازنگری' },
+  { min: 80, label: 'خوب و منسجم' },
+  { min: 70, label: 'قابل قبول و متعارف' },
+  { min: 60, label: 'نیازمند بازنگری جدی' },
   { min: 40, label: 'ضعیف با ایرادهای مهم' },
   { min: 0, label: 'ناکافی برای داوری مثبت' },
 ];

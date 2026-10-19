@@ -8,8 +8,9 @@
  */
 import { CRITERIA, matchesCriterion, type CriterionDefinition } from '../criteria';
 import { MIN_BULLETS, ensureReportBullets } from '../bullets';
+import { DEFAULT_EVALUATION_MODE } from '../evaluation-mode';
 import { polishPersianText } from '../persian';
-import type { CriterionResult, EvaluationReport } from '../types';
+import type { CriterionResult, EvaluationMode, EvaluationReport } from '../types';
 import { AIError } from './errors';
 import { parseLooseJson, stripCodeFences } from './json-recovery';
 
@@ -153,6 +154,7 @@ export function computeWeightedScore(criteria: CriterionResult[]): number {
 export function normalizeReport(
   input: unknown,
   definitions: CriterionDefinition[] = CRITERIA,
+  mode: EvaluationMode = DEFAULT_EVALUATION_MODE,
 ): EvaluationReport {
   const root = asRecord(input);
 
@@ -307,6 +309,7 @@ export function normalizeReport(
   // تضمین حداقل ۵ نقطه قوت و ۵ نقطه ضعف برای هر معیار (حتی اگر مدل کمتر داده باشد)
   return ensureReportBullets({
     overall_score: overallScore,
+    mode,
     criteria,
     summary,
     top_recommendations: recommendations,

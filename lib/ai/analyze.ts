@@ -9,7 +9,15 @@
  * همه‌ی تلاش‌ها در `analysis.attempts` ثبت می‌شوند تا کاربر بداند از کدام مدل استفاده شده است.
  */
 import type { CriterionDefinition } from '../criteria';
-import type { AnalysisInfo, AnalyzeResponse, AttemptRecord, EvaluationReport, ThesisMeta } from '../types';
+import { normalizeEvaluationMode } from '../evaluation-mode';
+import type {
+  AnalysisInfo,
+  AnalyzeResponse,
+  AttemptRecord,
+  EvaluationMode,
+  EvaluationReport,
+  ThesisMeta,
+} from '../types';
 import { buildAnalysisMessages, buildRepairMessages } from './prompt';
 import { compactThesis } from './compact';
 import { AIError } from './errors';
@@ -63,6 +71,8 @@ interface ResponseContext {
   attempts: AttemptRecord[];
   truncated: boolean;
   inputChars: number;
+  /** حالت (نوع) ارزیابی که در همه‌ی تلاش‌ها ثابت است */
+  mode: EvaluationMode;
 }
 
 function buildResponse(
@@ -82,7 +92,9 @@ function buildResponse(
     durationMs: Date.now() - context.startedAt,
     analyzedAt: new Date().toISOString(),
   };
-  return { report, analysis };
+  // حالت ارزیابی هم در خود گزارش و هم در پاسخ API ثبت می‌شود تا در سوابق و
+  // خروجی‌های Markdown/JSON قابل نمایش باشد.
+  return { report: { ...report, mode: context.mode }, analysis, mode: context.mode };
 }
 
 /**
@@ -96,8 +108,11 @@ export async function analyzeThesis(input: {
   instructions?: string;
   /** معیارهای قالب انتخاب‌شده (نام و وزن قابل تنظیم) */
   criteria: CriterionDefinition[];
+  /** حالت (نوع) ارزیابی: خوش‌بینانه / متعادل / بدبینانه */
+  mode?: EvaluationMode;
 }): Promise<AnalyzeResponse> {
   const startedAt = Date.now();
+  const mode = normalizeEvaluationMode(input.mode);
 
   const maxChars = readIntEnv('AI_MAX_INPUT_CHARS', DEFAULTS.maxChars, 4000, 60000);
   const totalBudgetMs = readIntEnv('AI_TOTAL_BUDGET_MS', DEFAULTS.totalBudgetMs, 15000, 120000);
@@ -112,6 +127,7 @@ export async function analyzeThesis(input: {
     originalChars: compact.originalChars,
     instructions: input.instructions,
     criteria: input.criteria,
+    mode,
   });
 
   const context: ResponseContext = {
@@ -119,6 +135,7 @@ export async function analyzeThesis(input: {
     attempts: [],
     truncated: compact.truncated,
     inputChars: compact.text.length,
+    mode,
   };
 
   const openRouterKey = getOpenRouterApiKey();
@@ -157,7 +174,7 @@ export async function analyzeThesis(input: {
         // مهلت طولانی‌تر از قطع‌شدن خروجی وسط JSON جلوگیری می‌کند.
         const timeoutMs = Math.min(remaining, reserveMs + 25000);
         raw = await callDeepSeek({ config: deepSeek, messages, timeoutMs });
-        const report = normalizeReport(extractJson(raw), input.criteria);
+        const report = normalizeReport(extractJson(raw), input.criteria, mode);
         context.attempts.push({ provider: 'deepseek', model: deepSeek.model, ok: true });
         return buildResponse(report, 'deepseek', deepSeek.model, false, context);
       } catch (error) {
@@ -172,7 +189,7 @@ export async function analyzeThesis(input: {
               messages: buildRepairMessages(raw.slice(0, 24000)),
               timeoutMs: Math.min(deadline - Date.now(), 20000),
             });
-            const report = normalizeReport(extractJson(repairedRaw), input.criteria);
+            const report = normalizeReport(extractJson(repairedRaw), input.criteria, mode);
             context.attempts.push({
               provider: 'deepseek',
               model: deepSeek.model,
@@ -214,7 +231,7 @@ export async function analyzeThesis(input: {
       const timeoutMs = Math.min(freeTimeoutMs, remaining);
       try {
         const content = await callOpenRouter({ apiKey: openRouterKey, model, messages, timeoutMs });
-        const report = normalizeReport(extractJson(content), input.criteria);
+        const report = normalizeReport(extractJson(content), input.criteria, mode);
         context.attempts.push({ provider: 'openrouter', model, ok: true });
         // مدل اصلی DeepSeek است؛ موفقیت OpenRouter یعنی استفاده از جایگزین
         return buildResponse(report, 'openrouter', model, true, context);
@@ -250,7 +267,7 @@ export async function analyzeThesis(input: {
         // تلاش نهایی هم مثل تلاش اصلی به مهلت کافی نیاز دارد تا JSON کامل شود
         const timeoutMs = Math.min(remaining, reserveMs + 25000);
         raw = await callDeepSeek({ config: deepSeek, messages, timeoutMs });
-        const report = normalizeReport(extractJson(raw), input.criteria);
+        const report = normalizeReport(extractJson(raw), input.criteria, mode);
         context.attempts.push({ provider: 'deepseek', model: deepSeek.model, ok: true });
         return buildResponse(report, 'deepseek', deepSeek.model, true, context);
       } catch (error) {
@@ -264,7 +281,7 @@ export async function analyzeThesis(input: {
               messages: buildRepairMessages(raw.slice(0, 24000)),
               timeoutMs: Math.min(deadline - Date.now(), 20000),
             });
-            const report = normalizeReport(extractJson(repairedRaw), input.criteria);
+            const report = normalizeReport(extractJson(repairedRaw), input.criteria, mode);
             context.attempts.push({
               provider: 'deepseek',
               model: deepSeek.model,

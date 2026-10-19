@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import { getApiError, readJsonSafe } from '@/lib/api';
 import { faNumber, formatBytes } from '@/lib/format';
+import { DEFAULT_EVALUATION_MODE } from '@/lib/evaluation-mode';
+import { readSelectedEvaluationMode, writeSelectedEvaluationMode } from '@/lib/mode-store';
 import type { CriterionDefinition } from '@/lib/criteria';
 import type {
   AnalyzeResponse,
   ApiErrorResponse,
   AttemptRecord,
   ConvertInfo,
+  EvaluationMode,
   ThesisMeta,
 } from '@/lib/types';
 import {
@@ -21,6 +24,7 @@ import {
   SparklesIcon,
   SpinnerIcon,
 } from './Icons';
+import { EvaluationModePicker } from './EvaluationModePicker';
 
 interface AnalyzePanelProps {
   meta: ThesisMeta;
@@ -80,6 +84,18 @@ export function AnalyzePanel({
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   /** دستور اختصاصی کاربر برای چارچوب/تمرکز تحلیل */
   const [instructions, setInstructions] = useState('');
+  /** نوع ارزیابی (خوش‌بینانه / متعادل / بدبینانه) — ترجیح ذخیره‌شده کاربر */
+  const [mode, setMode] = useState<EvaluationMode>(DEFAULT_EVALUATION_MODE);
+
+  // ترجیح ذخیره‌شده فقط پس از mount خوانده می‌شود تا رندر سرور و کلاینت یکسان بماند.
+  useEffect(() => {
+    setMode(readSelectedEvaluationMode());
+  }, []);
+
+  const selectMode = (next: EvaluationMode) => {
+    setMode(next);
+    writeSelectedEvaluationMode(next);
+  };
 
   useEffect(() => {
     if (!analyzing) return;
@@ -107,6 +123,7 @@ export function AnalyzePanel({
           markdown,
           meta,
           instructions: instructions.trim() || undefined,
+          mode,
           template: {
             id: templateId,
             name: templateName,
@@ -132,6 +149,7 @@ export function AnalyzePanel({
           report: payload.report,
           analysis: payload.analysis,
           template: payload.template,
+          mode: payload.report.mode ?? payload.mode ?? mode,
         },
         instructions.trim(),
       );
@@ -161,6 +179,8 @@ export function AnalyzePanel({
         </div>
         <span className="chip shrink-0">گام ۴ از ۴</span>
       </div>
+
+      <EvaluationModePicker value={mode} onChange={selectMode} disabled={analyzing} />
 
       <div className="rounded-2xl border border-indigo-200/70 bg-indigo-50/70 p-4 dark:border-indigo-400/25 dark:bg-indigo-500/10">
         <div className="flex flex-wrap items-center justify-between gap-2">

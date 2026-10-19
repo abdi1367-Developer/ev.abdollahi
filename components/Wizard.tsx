@@ -123,6 +123,7 @@ export function Wizard() {
       analysis: response.analysis,
       instructions: userInstructions || undefined,
       template: snapshot,
+      mode: response.report.mode ?? response.mode,
     };
 
     void persistRecord(record);
@@ -242,6 +243,7 @@ export function Wizard() {
           createdAt={createdAt}
           storageBackend={storageBackend}
           instructions={instructions}
+          mode={result.report.mode ?? result.mode}
           templateName={result.template?.name ?? template.name}
           onNewEvaluation={resetAll}
         />

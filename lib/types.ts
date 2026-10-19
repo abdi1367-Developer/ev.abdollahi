@@ -7,6 +7,14 @@ export type Degree = 'کارشناسی' | 'کارشناسی ارشد' | 'دکت�
 
 export const DEGREES: Degree[] = ['کارشناسی', 'کارشناسی ارشد', 'دکتری'];
 
+/**
+ * حالت (نوع) ارزیابی:
+ * - optimistic: خوش‌بینانه — نگاه فرصت‌محور و نمره‌ی مشوقانه
+ * - balanced: متعادل — ارزیابی منصف و واقع‌بینانه (پیش‌فرض)
+ * - strict: بدبینانه (سخت‌گیرانه) — استاندارد انتشار علمی و نمره‌دهی بی‌ارفاق
+ */
+export type EvaluationMode = 'optimistic' | 'balanced' | 'strict';
+
 /** مشخصات پایان‌نامه که کاربر در فرم وارد می‌کند */
 export interface ThesisMeta {
   studentName: string;
@@ -55,6 +63,8 @@ export interface EvaluationReport {
   criteria: CriterionResult[];
   summary: string;
   top_recommendations: string[];
+  /** حالت (نوع) ارزیابی که گزارش بر اساس آن تولید شده است */
+  mode?: EvaluationMode;
 }
 
 /** یک معیار در قالب ارزیابی (نام و وزن قابل تنظیم) */
@@ -130,6 +140,8 @@ export interface EvaluationRecord {
   instructions?: string;
   /** قالبی که ارزیابی بر اساس آن انجام شده است */
   template?: TemplateSnapshot;
+  /** حالت (نوع) ارزیابی انتخاب‌شده؛ در گزارش‌های قدیمی ممکن است خالی باشد */
+  mode?: EvaluationMode;
 }
 
 /** خلاصه‌ی رکورد برای لیست سوابق (بدون متن کامل و گزارش) */
@@ -143,6 +155,8 @@ export interface HistorySummary {
   fileType: 'docx' | 'pdf';
   /** نام قالب ارزیابی (برای نمایش در فهرست سوابق) */
   templateName?: string;
+  /** حالت (نوع) ارزیابی برای نمایش در فهرست سوابق */
+  mode?: EvaluationMode;
   /** نمره‌ی معیارها برای نمودارهای داشبورد سوابق */
   criteria?: Array<{ name: string; score: number; weight: number }>;
 }
@@ -159,6 +173,8 @@ export interface AnalyzeResponse {
   analysis: AnalysisInfo;
   /** قالب استفاده‌شده؛ برای ذخیره در گزارش و سوابق */
   template?: TemplateSnapshot;
+  /** حالت (نوع) ارزیابی که سرور اعمال کرده است */
+  mode: EvaluationMode;
 }
 
 /** پاسخ خطای همه‌ی APIها */

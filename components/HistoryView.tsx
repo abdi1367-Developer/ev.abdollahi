@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { readJsonSafe } from '@/lib/api';
 import { faNumber, formatFaDate } from '@/lib/format';
 import { deleteLocalRecord, readLocalSummaries } from '@/lib/local-store';
+import { evaluationModeLabel } from '@/lib/evaluation-mode';
 import { scoreTone } from '@/lib/ui';
 import type { HistoryResponse, HistorySummary } from '@/lib/types';
 import {
@@ -271,6 +272,9 @@ function HistoryCard({ item, deleting, onDelete }: HistoryCardProps) {
           <span className="chip">{item.meta.degree}</span>
           <span className="chip uppercase">{item.fileType}</span>
           {item.templateName ? <span className="chip-brand">{item.templateName}</span> : null}
+          {item.mode ? (
+            <span className="chip">ارزیابی {evaluationModeLabel(item.mode)}</span>
+          ) : null}
         </div>
         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
           {[item.meta.studentName, item.meta.university, item.meta.supervisor ? `استاد راهنما: ${item.meta.supervisor}` : '']

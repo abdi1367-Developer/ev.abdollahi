@@ -5,11 +5,13 @@
 import type {
   AnalysisInfo,
   ConvertInfo,
+  EvaluationMode,
   EvaluationReport,
   TemplateSnapshot,
   ThesisMeta,
 } from './types';
 import { ensureReportBullets } from './bullets';
+import { findEvaluationMode } from './evaluation-mode';
 import { polishPersianMarkdown, polishPersianText } from './persian';
 import { faNumber, formatFaDate } from './format';
 import { formatJalaliIso, isoToJalali } from './jalali';
@@ -24,6 +26,8 @@ export interface ReportExportInput {
   instructions?: string;
   /** قالب ارزیابی استفاده‌شده */
   template?: TemplateSnapshot;
+  /** حالت (نوع) ارزیابی؛ اگر خالی باشد از خود گزارش خوانده می‌شود */
+  mode?: EvaluationMode;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -66,6 +70,8 @@ export function reportToMarkdown(input: ReportExportInput): string {
   const { meta, report: rawReport, analysis, convert, createdAt, instructions, template } = input;
   // حتی گزارش‌های قدیمی ذخیره‌شده هم در خروجی حداقل ۵ نقطه قوت/ضعف دارند
   const report = ensureReportBullets(rawReport);
+  const appliedMode = input.mode ?? report.mode;
+  const modeDefinition = appliedMode ? findEvaluationMode(appliedMode) : null;
   const lines: string[] = [];
 
   lines.push('# گزارش ارزیابی پایان‌نامه');
@@ -86,6 +92,11 @@ export function reportToMarkdown(input: ReportExportInput): string {
   }
   if (createdAt) lines.push(`**تاریخ ارزیابی:** ${formatFaDate(createdAt)}`);
   if (template) lines.push(`**قالب ارزیابی:** ${template.name}`);
+  if (modeDefinition) {
+    lines.push(
+      `**نوع ارزیابی:** ${modeDefinition.label} — ${modeDefinition.description} (بازه‌ی معمول نمره در این حالت: ${modeDefinition.expectedRange} از ۱۰۰)`,
+    );
+  }
   lines.push('');
   lines.push(`## نمره‌ی کلی: ${faNumber(report.overall_score, 1)} از ۱۰۰`);
   lines.push('');
@@ -169,12 +180,18 @@ export function reportToMarkdown(input: ReportExportInput): string {
 
 /** خروجی JSON برای بایگانی یا پردازش‌های بعدی */
 export function reportToJsonObject(input: ReportExportInput) {
+  const appliedMode = input.mode ?? input.report.mode;
+  const modeDefinition = appliedMode ? findEvaluationMode(appliedMode) : null;
+
   return {
     generatedAt: new Date().toISOString(),
     meta: input.meta,
     evaluationDate: input.createdAt,
     instructions: input.instructions ?? null,
     template: input.template ?? null,
+    evaluationMode: modeDefinition
+      ? { id: modeDefinition.id, label: modeDefinition.label, expectedRange: modeDefinition.expectedRange }
+      : null,
     report: ensureReportBullets(input.report),
     analysis: input.analysis ?? null,
     source: input.convert ?? null,

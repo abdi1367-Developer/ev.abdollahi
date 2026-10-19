@@ -1,12 +1,13 @@
 /**
  * POST /api/analyze
- * بدنه: { markdown: string, meta: ThesisMeta, instructions?: string }
- * خروجی: گزارش ارزیابی + اطلاعات مدل و تلاش‌ها.
+ * بدنه: { markdown: string, meta: ThesisMeta, instructions?: string, template?: object, mode?: EvaluationMode }
+ * خروجی: گزارش ارزیابی + اطلاعات مدل و تلاش‌ها + حالت ارزیابی.
  */
 import { NextResponse } from 'next/server';
 import { analyzeThesis } from '@/lib/ai/analyze';
 import { requireUser } from '@/lib/auth-server';
 import { AIError } from '@/lib/ai/errors';
+import { normalizeEvaluationMode } from '@/lib/evaluation-mode';
 import { resolveTemplateInput, toTemplateSnapshot } from '@/lib/templates';
 import type { AnalyzeResponse, ApiErrorResponse } from '@/lib/types';
 import { cleanMultiline, validateThesisMeta } from '@/lib/validation';
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
   // دستور اختصاصی کاربر (مثلاً «بر اساس مدل CIPP تحلیل کن») — اختیاری و پاک‌سازی‌شده
   const instructions = cleanMultiline(body.instructions, 1500);
 
+  // حالت (نوع) ارزیابی: هر مقدار نامعتبر یا ارسال‌نشده به «متعادل» تبدیل می‌شود
+  const mode = normalizeEvaluationMode(body.mode);
+
   // قالب ارزیابی: نام و وزن معیارها از کلاینت می‌آید و در سرور اعتبارسنجی می‌شود.
   // اگر قالب ارسال نشود، قالب پیش‌فرض (۸ معیار) استفاده می‌شود.
   const templateInput =
@@ -74,6 +78,7 @@ export async function POST(request: Request) {
       meta,
       instructions,
       criteria: template.criteria,
+      mode,
     });
     return NextResponse.json<AnalyzeResponse>({
       ...result,

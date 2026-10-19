@@ -32,23 +32,23 @@ export const sectionTitleClass = 'text-lg font-bold text-slate-900 sm:text-xl';
 
 /** رنگ نوار/حلقه‌ی نمره بر اساس مقدار ۰ تا ۱۰۰ */
 export function scoreTone(score: number): { text: string; bar: string; ring: string; label: string } {
-  if (score >= 85) {
+  if (score >= 90) {
+    return {
+      text: 'text-emerald-700',
+      bar: 'bg-emerald-600',
+      ring: 'stroke-emerald-600',
+      label: 'عالی',
+    };
+  }
+  if (score >= 80) {
     return {
       text: 'text-emerald-600',
       bar: 'bg-emerald-500',
       ring: 'stroke-emerald-500',
-      label: 'عالی',
-    };
-  }
-  if (score >= 70) {
-    return {
-      text: 'text-sky-600',
-      bar: 'bg-sky-500',
-      ring: 'stroke-sky-500',
       label: 'خوب',
     };
   }
-  if (score >= 55) {
+  if (score >= 70) {
     return {
       text: 'text-amber-600',
       bar: 'bg-amber-500',

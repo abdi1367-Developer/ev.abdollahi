@@ -131,6 +131,7 @@ export function HistoryDetail({ id }: HistoryDetailProps) {
         createdAt={record.createdAt}
         storageBackend={backend}
         instructions={record.instructions}
+        mode={record.report.mode ?? record.mode}
         templateName={record.template?.name}
         onNewEvaluation={() => router.push('/')}
       />
