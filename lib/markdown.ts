@@ -108,6 +108,87 @@ interface RawConversion {
   warnings: string[];
 }
 
+/** یک قطعه‌ی متنی PDF.js به‌همراه موقعیت هندسی آن */
+export interface PdfTextItem {
+  str: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  fontSize?: number;
+  hasEOL?: boolean;
+}
+
+/** نسبت «فاصله‌ی افقی به اندازه‌ی قلم» که فراتر از آن، یک فاصله‌ی واژه حساب می‌شود */
+const PDF_SPACE_GAP_RATIO = 0.18;
+
+function itemSize(item: PdfTextItem): number {
+  const size = Number(item?.fontSize) || Number(item?.height) || 0;
+  return size > 0 ? size : 10;
+}
+
+/**
+ * آیا میان دو قطعه‌ی متنی، فاصله‌ی افقیِ یک «واژه» وجود دارد؟
+ * جهت متن مهم نیست: LTR (راست‌رونده) و RTL (چپ‌رونده) هر دو سنجیده می‌شوند.
+ */
+function hasWordGap(prev: PdfTextItem, next: PdfTextItem): boolean {
+  const prevRight = prev.x + (Number(prev.width) || 0);
+  const nextRight = next.x + (Number(next.width) || 0);
+  const gap = next.x >= prev.x ? next.x - prevRight : prev.x - nextRight;
+  const size = Math.max(itemSize(prev), itemSize(next));
+  return gap > size * PDF_SPACE_GAP_RATIO;
+}
+
+/**
+ * بازسازی متن PDF از قطعه‌های متنی PDF.js.
+ *
+ * `extractText` کتابخانه‌ی unpdf قطعه‌ها را با رشته‌ی خالی به هم می‌چسباند؛
+ * در بسیاری از PDFهای فارسی نتیجه «متنپژوهش» می‌شود. اینجا میان قطعه‌هایی که
+ * بر اساس موقعیت افقی‌شان از هم فاصله دارند، فاصله‌ی معمولی گذاشته می‌شود و
+ * مرزهای خط (hasEOL یا تغییر مختصات عمودی) حفظ می‌شود.
+ */
+export function pdfItemsToText(pages: PdfTextItem[][]): string {
+  return pages
+    .map((items) => {
+      const lines: string[] = [];
+      let line = '';
+      let prev: PdfTextItem | null = null;
+
+      const flushLine = () => {
+        const text = line.trim();
+        if (text) lines.push(text);
+        line = '';
+        prev = null;
+      };
+
+      for (const item of Array.isArray(items) ? items : []) {
+        const str = String(item?.str ?? '');
+        if (!str) continue;
+
+        const sameLine =
+          prev !== null &&
+          !prev.hasEOL &&
+          Math.abs(Number(item.y) - Number(prev.y)) <= Math.max(itemSize(item), itemSize(prev)) * 0.5;
+
+        if (!sameLine) {
+          flushLine();
+          line = str;
+        } else {
+          const needsSpace =
+            !/\s$/.test(line) && !/^\s/.test(str) && hasWordGap(prev as PdfTextItem, item);
+          line += `${needsSpace ? ' ' : ''}${str}`;
+        }
+
+        prev = item;
+        if (item.hasEOL) flushLine();
+      }
+
+      flushLine();
+      return lines.join('\n');
+    })
+    .join('\n');
+}
+
 /** تبدیل فایل Word (.docx) به Markdown */
 async function docxToMarkdown(buffer: Buffer): Promise<RawConversion> {
   // نکته: تایپ‌های رسمی mammoth متد convertToMarkdown را اعلام نکرده‌اند،
@@ -153,13 +234,32 @@ async function docxToMarkdown(buffer: Buffer): Promise<RawConversion> {
 async function pdfToMarkdown(buffer: Buffer): Promise<RawConversion> {
   try {
     // unpdf نسخه‌ای از PDF.js را همراه دارد که برای محیط Serverless بهینه شده است
-    const { extractText, getDocumentProxy } = await import('unpdf');
+    const { extractText, extractTextItems, getDocumentProxy } = await import('unpdf');
     const pdf = await getDocumentProxy(new Uint8Array(buffer) as any);
-    const extracted: any = await extractText(pdf as any, { mergePages: true });
 
-    const rawValue = extracted?.text;
-    const raw = Array.isArray(rawValue) ? rawValue.join('\n\n') : String(rawValue ?? '');
-    const pages = Number(extracted?.totalPages) || undefined;
+    // مسیر اصلی: بازسازی متن از قطعه‌های PDF با موقعیت هندسی، تا کلمات به هم نچسبند
+    let raw = '';
+    let pages: number | undefined;
+
+    try {
+      const extractedItems: any = await extractTextItems(pdf as any);
+      pages = Number(extractedItems?.totalPages) || undefined;
+      const items: PdfTextItem[][] = Array.isArray(extractedItems?.items) ? extractedItems.items : [];
+      if (items.some((page) => Array.isArray(page) && page.length > 0)) {
+        raw = pdfItemsToText(items);
+      }
+    } catch (error) {
+      // اگر نسخه‌ی نصب‌شده extractTextItems نداشت، از مسیر جایگزین استفاده می‌شود
+      console.warn('[convert] pdf items error:', error);
+    }
+
+    // مسیر جایگزین: متن صفحه‌ها به‌صورت یک‌جا
+    if (!raw.trim()) {
+      const extracted: any = await extractText(pdf as any, { mergePages: true });
+      const rawValue = extracted?.text;
+      raw = Array.isArray(rawValue) ? rawValue.join('\n\n') : String(rawValue ?? '');
+      pages = Number(extracted?.totalPages) || pages;
+    }
 
     const warnings: string[] = [];
     if (raw.trim().length < 200 && (pages ?? 0) > 0) {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { copyToClipboard, downloadJson, downloadMarkdown } from '@/lib/download';
 import { buildDownloadName, faNumber, formatFaDate } from '@/lib/format';
-import { reportToJsonObject, reportToMarkdown } from '@/lib/report';
+import { reportToJsonObject, polishReport, reportToMarkdown } from '@/lib/report';
 import { ensureReportBullets } from '@/lib/bullets';
 import { formatJalaliIso } from '@/lib/jalali';
 import { scoreTone } from '@/lib/ui';
@@ -75,7 +75,7 @@ export function EvaluationReportView({
 }: ReportViewProps) {
   const [copied, setCopied] = useState(false);
   // گزارش‌های قدیمی ذخیره‌شده هم حداقل ۵ نقطه قوت/ضعف برای هر معیار نمایش می‌دهند
-  const report = useMemo(() => ensureReportBullets(rawReport), [rawReport]);
+  const report = useMemo(() => ensureReportBullets(polishReport(rawReport)), [rawReport]);
 
   const exportInput = useMemo(
     () => ({
@@ -509,9 +509,9 @@ function CriterionCard({ criterion, index, totalWeight }: CriterionCardProps) {
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-white/60 p-4 backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-          <span className="ml-1 text-slate-400">{faNumber(index + 1)}.</span>
-          {criterion.name}
+        <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white">
+          <span className="text-slate-400">{faNumber(index + 1)}.</span>
+          <span>{criterion.name}</span>
         </h3>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="chip">وزن {faNumber(criterion.weight)}٪</span>

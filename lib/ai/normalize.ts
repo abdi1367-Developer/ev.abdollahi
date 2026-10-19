@@ -8,7 +8,7 @@
  */
 import { CRITERIA, matchesCriterion, type CriterionDefinition } from '../criteria';
 import { MIN_BULLETS, ensureReportBullets } from '../bullets';
-import { normalizePersianSpacing } from '../persian';
+import { polishPersianText } from '../persian';
 import type { CriterionResult, EvaluationReport } from '../types';
 import { AIError } from './errors';
 import { parseLooseJson, stripCodeFences } from './json-recovery';
@@ -33,8 +33,8 @@ function pickString(record: Record<string, unknown>, keys: string[], maxLength: 
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) {
-      // فاصله‌گذاری فارسی اصلاح می‌شود تا کلمات در خروجی به هم نچسبند
-      return normalizePersianSpacing(value).replace(/\s+/g, ' ').trim().slice(0, maxLength);
+      // درست‌نویسی و فاصله‌گذاری فارسی اصلاح می‌شود تا کلمات در خروجی به هم نچسبند
+      return polishPersianText(value).replace(/\s+/g, ' ').trim().slice(0, maxLength);
     }
   }
   return '';
@@ -59,7 +59,7 @@ export function toStringArray(value: unknown, max = 5, maxLength = 400): string[
     // امکان جداسازی چند مورد با «؛»، خط جدید یا نشانه‌ی بولت در یک رشته
     const parts = text.split(/[؛\n•●▪◦‣]+/);
     for (const part of parts) {
-      const cleaned = normalizePersianSpacing(
+      const cleaned = polishPersianText(
         // شماره‌گذاری لاتین و فارسی ابتدای آیتم حذف می‌شود («۱.»، «-»، «•»)
         part.replace(/^[-–—•*\d۰-۹.)\s]+/, ''),
       )

@@ -20,7 +20,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         در پردازش درخواست شما مشکلی پیش آمد. می‌توانید دوباره تلاش کنید؛ اگر خطا ادامه داشت، صفحه را
         بازخوانی کنید. برای عیب‌یابی، وضعیت محیط اجرا را در مسیر{' '}
         <span className="ltr inline-block font-mono text-xs">/api/health</span> ببینید و لاگ
-        Functionها را در Vercel بررسی کنید.
+        توابع را در Vercel بررسی کنید.
       </p>
       {error.digest ? (
         <p className="mt-2 text-[11px] text-slate-400">

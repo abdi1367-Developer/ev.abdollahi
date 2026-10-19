@@ -10,7 +10,7 @@ import type {
   ThesisMeta,
 } from './types';
 import { ensureReportBullets } from './bullets';
-import { polishPersianMarkdown } from './persian';
+import { polishPersianMarkdown, polishPersianText } from './persian';
 import { faNumber, formatFaDate } from './format';
 import { formatJalaliIso, isoToJalali } from './jalali';
 
@@ -33,6 +33,32 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 function providerLabel(provider: string): string {
   return PROVIDER_LABELS[provider] ?? provider;
+}
+
+/**
+ * درست‌نویسی متن‌های تولیدشده‌ی گزارش (فاصله‌گذاری، نیم‌فاصله و املای فارسی).
+ * گزارش‌های قدیمیِ ذخیره‌شده هم هنگام نمایش اصلاح می‌شوند؛ اعمال دوباره‌ی آن
+ * نتیجه را تغییر نمی‌دهد (idempotent).
+ */
+export function polishReport(report: EvaluationReport): EvaluationReport {
+  if (!report || !Array.isArray(report.criteria)) return report;
+  return {
+    ...report,
+    summary: polishPersianText(report.summary ?? ''),
+    top_recommendations: Array.isArray(report.top_recommendations)
+      ? report.top_recommendations.map((item) => polishPersianText(item))
+      : [],
+    criteria: report.criteria.map((criterion) => ({
+      ...criterion,
+      reasoning: polishPersianText(criterion.reasoning ?? ''),
+      strengths: Array.isArray(criterion.strengths)
+        ? criterion.strengths.map((item) => polishPersianText(item))
+        : [],
+      weaknesses: Array.isArray(criterion.weaknesses)
+        ? criterion.weaknesses.map((item) => polishPersianText(item))
+        : [],
+    })),
+  };
 }
 
 /** گزارش خوانا به‌صورت Markdown (قابل استفاده در Word/Notion/GitHub) */
@@ -137,8 +163,8 @@ export function reportToMarkdown(input: ReportExportInput): string {
   lines.push('');
   lines.push('> این گزارش با کمک هوش مصنوعی تهیه شده است و جایگزین داوری رسمی انسانی نیست.');
 
-  // اصلاح نهایی فاصله‌گذاری فارسی (بدون دست‌زدن به بلوک‌های کد)
-  return polishPersianMarkdown(lines.join('\n'));
+  // اصلاح نهایی فاصله‌گذاری و املای فارسی (بدون دست‌زدن به بلوک‌های کد)
+  return polishPersianMarkdown(lines.join('\n'), { orthography: true });
 }
 
 /** خروجی JSON برای بایگانی یا پردازش‌های بعدی */
