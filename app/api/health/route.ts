@@ -7,6 +7,7 @@
  */
 import { NextResponse } from 'next/server';
 import { resolveDeepSeekKey } from '@/lib/ai/providers';
+import { isBlobUserStoreConfigured } from '@/lib/blob-user-store';
 import { SESSION_COOKIE } from '@/lib/session';
 import { isKvConfigured } from '@/lib/store';
 
@@ -31,6 +32,7 @@ export async function GET() {
     (process.env.BLOB_STORE_ID || '').trim() &&
       ((process.env.VERCEL_OIDC_TOKEN || '').trim() || process.env.VERCEL === '1'),
   );
+  const blobUsers = isBlobUserStoreConfigured();
 
   const payload = {
     status: 'ok',
@@ -49,7 +51,10 @@ export async function GET() {
       adminPasswordLongEnough: adminPassword.length >= 8,
     },
     storage: {
-      users: kv ? 'kv' : 'file-or-memory',
+      // کاربران: اول KV، بعد Vercel Blob (ذخیره‌سازی مشترک بین Functionها) و
+      // در نهایت فایل/حافظه‌ی محلی. اگر در Production مقدار file-or-memory
+      // دیدید، Blob یا KV را وصل کنید؛ وگرنه کاربران جدید ماندگار نیستند.
+      users: kv ? 'kv' : blobUsers ? 'blob' : 'file-or-memory',
       history: kv ? 'kv' : 'localStorage',
       blob: blobReadWriteToken || blobOidc,
       blobAuth: blobReadWriteToken ? 'token' : blobOidc ? 'oidc' : 'none',

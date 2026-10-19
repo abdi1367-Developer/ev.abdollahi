@@ -1,13 +1,28 @@
 /**
  * ذخیره‌سازی و مدیریت کاربران — فقط سمت سرور (Node.js).
  *
- * اگر KV تنظیم شده باشد کاربران در Redis نگه داشته می‌شوند؛ در غیر این صورت
- * در فایل `.data/users.json` (فقط برای اجرای محلی) ذخیره می‌شوند. رمزها با
- * scrypt و نمک تصادفی هش می‌شوند و هرگز به کلاینت برنمی‌گردند.
+ * اولویت ذخیره‌سازی: KV (در صورت تنظیم) → Vercel Blob (برای اشتراک بین
+ * Serverless Functionها) → فایل `.data/users.json` (فقط اجرای محلی) → حافظه.
+ * رمزها با scrypt و نمک تصادفی هش می‌شوند و هرگز به کلاینت برنمی‌گردند.
+ * داده‌ی Blob با AES-GCM رمزنگاری می‌شود تا در Store عمومی هم هش رمزها
+ * قابل مطالعه نباشد.
  */
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+  scryptSync,
+  timingSafeEqual,
+} from 'crypto';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
+import {
+  isBlobUserStoreConfigured,
+  readUsersFromBlob,
+  writeUsersToBlob,
+} from './blob-user-store';
 import { isKvConfigured, redisCommand } from './store';
 import type { PublicUser, UserRole } from './types';
 
@@ -70,14 +85,101 @@ function asUserRecord(value: unknown): UserRecord | null {
   };
 }
 
+function parseUsersStrict(raw: string): UserRecord[] {
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) {
+    throw new Error('ساختار داده‌ی کاربران آرایه نیست.');
+  }
+  const users = parsed
+    .map(asUserRecord)
+    .filter((item): item is UserRecord => item !== null);
+  if (parsed.length > 0 && users.length === 0) {
+    throw new Error('هیچ رکورد کاربر معتبری در داده‌ها پیدا نشد.');
+  }
+  return users;
+}
+
 function parseUsers(raw: string | null): UserRecord[] {
   if (!raw) return [];
   try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map(asUserRecord).filter((item): item is UserRecord => item !== null);
+    return parseUsersStrict(raw);
   } catch {
     return [];
+  }
+}
+
+interface EncryptedUsersPayload {
+  v: 1;
+  iv: string;
+  tag: string;
+  data: string;
+}
+
+const USERS_BLOB_FALLBACK_SECRET = 'thesis-evaluator-dev-secret-change-me';
+
+/** کلید رمزنگاری snapshot کاربران؛ باید بین همه‌ی Functionها ثابت بماند. */
+function usersEncryptionKey(): Buffer {
+  const secret =
+    (process.env.AUTH_SECRET || '').trim() ||
+    (process.env.ADMIN_PASSWORD || '').trim() ||
+    USERS_BLOB_FALLBACK_SECRET;
+  return createHash('sha256').update(secret).digest();
+}
+
+/**
+ * داده‌ی کاربران در Blob ممکن است روی Store عمومی هم نوشته شود؛ بنابراین
+ * حتی هش رمزها را به‌صورت plaintext در URL عمومی قرار نمی‌دهیم.
+ */
+function encryptUsersPayload(users: UserRecord[]): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', usersEncryptionKey(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(users), 'utf8'),
+    cipher.final(),
+  ]);
+  const payload: EncryptedUsersPayload = {
+    v: 1,
+    iv: iv.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    data: encrypted.toString('base64'),
+  };
+  return JSON.stringify(payload);
+}
+
+function parseUsersPayload(raw: string): UserRecord[] {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+
+  // سازگاری با داده‌ی قدیمی/دستی که به‌صورت آرایه‌ی ساده ذخیره شده است.
+  if (trimmed.startsWith('[')) return parseUsersStrict(trimmed);
+
+  try {
+    const payload = JSON.parse(trimmed) as Partial<EncryptedUsersPayload>;
+    if (
+      payload?.v !== 1 ||
+      typeof payload.iv !== 'string' ||
+      typeof payload.tag !== 'string' ||
+      typeof payload.data !== 'string'
+    ) {
+      throw new Error('ساختار داده‌ی رمزنگاری‌شده معتبر نیست.');
+    }
+
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      usersEncryptionKey(),
+      Buffer.from(payload.iv, 'base64'),
+    );
+    decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
+    const plain = Buffer.concat([
+      decipher.update(Buffer.from(payload.data, 'base64')),
+      decipher.final(),
+    ]).toString('utf8');
+    return parseUsersStrict(plain);
+  } catch {
+    throw new UserStoreError(
+      'خواندن داده‌ی کاربران از Vercel Blob ممکن نشد؛ AUTH_SECRET را تغییر نداده و اتصال Blob را بررسی کنید.',
+      500,
+    );
   }
 }
 
@@ -86,6 +188,24 @@ async function loadRawUsers(): Promise<UserRecord[]> {
     const raw = await redisCommand<string | null>(['GET', USERS_KEY]);
     return parseUsers(raw);
   }
+
+  // بدون KV، از Blob به‌عنوان منبع مشترک بین Serverless Functionها استفاده
+  // می‌کنیم. این بخش همان مشکلی را رفع می‌کند که باعث می‌شد کاربر تازه‌ساخته
+  // در فهرست دیده نشود یا نتواند وارد سامانه شود.
+  if (isBlobUserStoreConfigured()) {
+    try {
+      const raw = await readUsersFromBlob();
+      return raw ? parseUsersPayload(raw) : [];
+    } catch (error) {
+      if (error instanceof UserStoreError) throw error;
+      console.error('[users] reading users from blob failed:', error);
+      throw new UserStoreError(
+        'خواندن فهرست کاربران از Vercel Blob ناموفق بود. اتصال Blob را بررسی کنید.',
+        502,
+      );
+    }
+  }
+
   try {
     return parseUsers(await readFile(DATA_FILE, 'utf8'));
   } catch (error) {
@@ -102,11 +222,24 @@ async function saveRawUsers(users: UserRecord[]): Promise<void> {
     return;
   }
 
+  if (isBlobUserStoreConfigured()) {
+    try {
+      await writeUsersToBlob(encryptUsersPayload(users));
+      return;
+    } catch (error) {
+      console.error('[users] writing users to blob failed:', error);
+      throw new UserStoreError(
+        'ذخیره‌ی کاربران در Vercel Blob ناموفق بود؛ اتصال Blob و مقدار AUTH_SECRET را بررسی کنید.',
+        502,
+      );
+    }
+  }
+
   try {
     await mkdir(join(process.cwd(), '.data'), { recursive: true });
     await writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf8');
   } catch {
-    // در محیط‌های read-only (مثل Vercel بدون KV) حداقل تا زمان اجرای پروسه در حافظه می‌ماند.
+    // در محیط‌های read-only بدون KV و Blob، حداقل تا زمان اجرای پروسه در حافظه می‌ماند.
   }
 }
 
@@ -203,7 +336,13 @@ async function loadWithSeed(): Promise<UserRecord[]> {
   if (users.length > 0) return users;
 
   const admin = seedAdmin();
-  await saveRawUsers([admin]);
+  // فقط وقتی Blob منبع فعال است، seed خالی را عمداً ذخیره نمی‌کنیم تا اگر
+  // هم‌زمان با اولین ورود/ساخت کاربر اجرا شود، snapshot خالی روی کاربر
+  // تازه‌ساخته نوشته نشود. اولین تغییر واقعی مدیر را هم با بقیه ذخیره می‌کند.
+  // اگر KV تنظیم شده باشد، ذخیره‌سازی seed طبق روال قبلی انجام می‌شود.
+  if (isKvConfigured() || !isBlobUserStoreConfigured()) {
+    await saveRawUsers([admin]);
+  }
   return [admin];
 }
 
@@ -242,7 +381,21 @@ export async function authenticate(
 
     const updated: UserRecord = { ...user, lastLoginAt: new Date().toISOString() };
     users[index] = updated;
-    await saveRawUsers(users);
+    // ثبت آخرین ورود نباید ورود موفق را به‌خاطر یک خطای موقت ذخیره‌سازی خراب
+    // کند؛ اعتبار رمز قبلاً تأیید شده است. برای تنها مدیرِ seedشده در Blob
+    // هم نوشتن انجام نمی‌شود تا با ساخت هم‌زمان کاربر تداخل نکند.
+    const seedOnlyInBlob =
+      !isKvConfigured() &&
+      isBlobUserStoreConfigured() &&
+      users.length === 1 &&
+      user.id.startsWith('seed-admin:');
+    if (!seedOnlyInBlob) {
+      try {
+        await saveRawUsers(users);
+      } catch (error) {
+        console.warn('[users] could not persist lastLoginAt:', error);
+      }
+    }
     return toPublicUser(updated);
   });
 }

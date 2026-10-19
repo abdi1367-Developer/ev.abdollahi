@@ -92,8 +92,10 @@ export function UserManager() {
   const refresh = async () => {
     const response = await fetch('/api/users', { cache: 'no-store' });
     const payload = await readJsonSafe<UsersResponse & ApiErrorResponse>(response);
-    if (response.ok && payload?.users) setUsers(payload.users);
-    else setError(getApiError(payload, 'به‌روزرسانی فهرست کاربران ناموفق بود.'));
+    if (!response.ok || !payload?.users) {
+      throw new Error(getApiError(payload, 'به‌روزرسانی فهرست کاربران ناموفق بود.'));
+    }
+    setUsers(payload.users);
   };
 
   const handleCreate = async (event: FormEvent) => {
@@ -113,11 +115,31 @@ export function UserManager() {
         setError(getApiError(payload, 'ساخت کاربر جدید ناموفق بود.'));
         return;
       }
+
+      const createdUser = payload.user;
       setForm(EMPTY_FORM);
-      setLastCreated(payload.user);
-      setHighlightId(payload.user.id);
-      setNotice(`کاربر «${payload.user.displayName}» ساخته شد و در پایین قابل مشاهده است.`);
-      await refresh();
+      // کاربر بلافاصله در فهرست اضافه می‌شود تا حتی اگر GET بعدی کمی تأخیر
+      // داشته باشد یا خطا بدهد، مدیر بتواند همان‌جا نقش/وضعیت/رمز یا حذف را
+      // تغییر دهد. refresh نهایی، داده‌ی سرور را جایگزین می‌کند.
+      setUsers((previous) => [
+        ...previous.filter((item) => item.id !== createdUser.id),
+        createdUser,
+      ]);
+      setLastCreated(createdUser);
+      setHighlightId(createdUser.id);
+      setNotice(`کاربر «${createdUser.displayName}» ساخته شد و در پایین قابل مشاهده است.`);
+      try {
+        await refresh();
+      } catch {
+        // خطای به‌روزرسانی فهرست نباید موفقیت ساخت کاربر را زیر سؤال ببرد.
+      }
+      // اگر فهرست سرور به‌دلیل تأخیر ذخیره‌سازی هنوز کاربر را برنگرداند،
+      // کارت ساخته‌شده را از دست نمی‌دهیم.
+      setUsers((previous) =>
+        previous.some((item) => item.id === createdUser.id)
+          ? previous
+          : [...previous, createdUser],
+      );
     } catch {
       setError('ارتباط با سرور برقرار نشد.');
     } finally {
@@ -254,7 +276,7 @@ export function UserManager() {
             </span>
             <h1 className="mt-3 text-2xl font-extrabold">مدیریت کاربران</h1>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-orange-50/80">
-              ساخت کاربر، تغییر نقش و وضعیت، بازنشانی رمز و حذف کاربر — همه در یک نمای یکدست.
+              ساخت کاربر، ویرایش نام، تغییر نقش و وضعیت، بازنشانی رمز و حذف کاربر — همه در یک نمای یکدست.
             </p>
           </div>
           <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-center backdrop-blur">
@@ -560,7 +582,7 @@ interface UserCardProps {
   highlighted: boolean;
   onPatch: (
     id: string,
-    patch: { role?: UserRole; active?: boolean; password?: string },
+    patch: { role?: UserRole; active?: boolean; password?: string; displayName?: string },
   ) => Promise<void>;
   onDelete: (user: PublicUser) => Promise<void>;
 }
@@ -568,7 +590,21 @@ interface UserCardProps {
 function UserCard({ user, isMe, busy, highlighted, onPatch, onDelete }: UserCardProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(user.displayName);
   const [localError, setLocalError] = useState('');
+
+  const handleEdit = async (event: FormEvent) => {
+    event.preventDefault();
+    const nextName = displayName.trim();
+    if (nextName.length < 2) {
+      setLocalError('نام نمایشی باید حداقل ۲ کاراکتر باشد.');
+      return;
+    }
+    setLocalError('');
+    await onPatch(user.id, { displayName: nextName });
+    setEditOpen(false);
+  };
 
   const handleReset = async (event: FormEvent) => {
     event.preventDefault();
@@ -667,6 +703,19 @@ function UserCard({ user, isMe, busy, highlighted, onPatch, onDelete }: UserCard
             className="btn-ghost py-2"
             disabled={busy}
             onClick={() => {
+              setEditOpen((value) => !value);
+              setDisplayName(user.displayName);
+              setLocalError('');
+            }}
+          >
+            ویرایش نام
+          </button>
+
+          <button
+            type="button"
+            className="btn-ghost py-2"
+            disabled={busy}
+            onClick={() => {
               setResetOpen((value) => !value);
               setLocalError('');
             }}
@@ -686,6 +735,46 @@ function UserCard({ user, isMe, busy, highlighted, onPatch, onDelete }: UserCard
           </button>
         </div>
       </div>
+
+      {editOpen ? (
+        <form
+          className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row dark:border-white/10 dark:bg-white/[0.03]"
+          onSubmit={handleEdit}
+        >
+          <input
+            type="text"
+            className="field"
+            value={displayName}
+            minLength={2}
+            maxLength={80}
+            autoComplete="off"
+            placeholder="نام نمایشی جدید"
+            aria-label={`نام نمایشی برای ${user.username}`}
+            onChange={(event) => setDisplayName(event.target.value)}
+            disabled={busy}
+          />
+          <button type="submit" className="btn-primary shrink-0" disabled={busy}>
+            <SaveIcon className="h-4 w-4" />
+            ذخیره نام
+          </button>
+          <button
+            type="button"
+            className="btn-ghost shrink-0"
+            disabled={busy}
+            onClick={() => {
+              setEditOpen(false);
+              setLocalError('');
+            }}
+          >
+            انصراف
+          </button>
+          {localError ? (
+            <p className="self-center text-xs font-semibold text-rose-700 dark:text-rose-300">
+              {localError}
+            </p>
+          ) : null}
+        </form>
+      ) : null}
 
       {resetOpen ? (
         <form

@@ -17,6 +17,12 @@ export async function GET(request: Request) {
   try {
     return NextResponse.json<UsersResponse>({ users: await listUsers() });
   } catch (error) {
+    if (error instanceof UserStoreError) {
+      return NextResponse.json<ApiErrorResponse>(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
     console.error('[api/users] list failed:', error);
     return NextResponse.json<ApiErrorResponse>(
       { error: 'دریافت فهرست کاربران ناموفق بود.' },

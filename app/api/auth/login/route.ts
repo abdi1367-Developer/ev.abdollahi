@@ -9,6 +9,7 @@ import {
   sessionCookieOptions,
 } from '@/lib/session';
 import type { ApiErrorResponse, AuthResponse } from '@/lib/types';
+import { isBlobUserStoreConfigured } from '@/lib/blob-user-store';
 import { isKvConfigured } from '@/lib/store';
 import { authenticate } from '@/lib/users';
 
@@ -111,7 +112,9 @@ export async function POST(request: Request) {
         ? 'امضای کوکی نشست در این محیط ممکن نشد؛ متغیر محیطی AUTH_SECRET را تنظیم کنید.'
         : isKvConfigured()
           ? 'اتصال سرویس ذخیره‌سازی (KV/Upstash) را در متغیرهای محیطی بررسی کنید.'
-          : 'مقادیر AUTH_SECRET و ADMIN_PASSWORD را در متغیرهای محیطی بررسی کنید.';
+          : isBlobUserStoreConfigured()
+            ? 'اتصال Vercel Blob و مقدار AUTH_SECRET را بررسی کنید (کاربران در Blob نگهداری می‌شوند).'
+            : 'مقادیر AUTH_SECRET و ADMIN_PASSWORD را در متغیرهای محیطی بررسی کنید.';
     return NextResponse.json<ApiErrorResponse>(
       { error: `ورود به سامانه ناموفق بود. ${hint}` },
       { status: 500 },
