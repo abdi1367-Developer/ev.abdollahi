@@ -18,7 +18,7 @@ export interface EvaluationModeDefinition {
   description: string;
   /** جمله‌ی کوتاه درباره‌ی نگاه داور در این حالت */
   stance: string;
-  /** بازه‌ی معمول نمره‌ی کلی در این حالت (برای نمایش و راهنمای مدل) */
+  /** بازه‌ی معمول نمره‌ی کلی در این حالت (برای راهنمای مدل، گزارش و خروجی‌ها) */
   expectedRange: string;
   /** کلاس‌های رنگ برچسب (Chip) در گزارش و سوابق */
   chipClass: string;

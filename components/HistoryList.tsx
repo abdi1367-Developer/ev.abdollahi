@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { readJsonSafe } from '@/lib/api';
 import { faNumber, formatFaDate } from '@/lib/format';
 import { deleteLocalRecord, readLocalSummaries } from '@/lib/local-store';
-import { evaluationModeLabel } from '@/lib/evaluation-mode';
+import { evaluationModeLabel, findEvaluationMode } from '@/lib/evaluation-mode';
 import { scoreTone } from '@/lib/ui';
 import type { HistoryResponse, HistorySummary } from '@/lib/types';
 import { AlertIcon, ArrowLeftIcon, ClockIcon, SearchIcon, SparklesIcon, TrashIcon } from './Icons';
@@ -288,7 +288,17 @@ function HistoryCard({ item, deleting, onDelete }: HistoryCardProps) {
           <span className="chip">{item.meta.degree}</span>
           <span className="chip uppercase">{item.fileType}</span>
           {item.templateName ? <span className="chip">{item.templateName}</span> : null}
-          {item.mode ? <span className="chip">ارزیابی {evaluationModeLabel(item.mode)}</span> : null}
+          <span
+            className={findEvaluationMode(item.mode).chipClass}
+            title={
+              item.mode
+                ? undefined
+                : 'نوع ارزیابی این سابقه ذخیره نشده است؛ حالت پیش‌فرض «متعادل» نمایش داده می‌شود.'
+            }
+          >
+            ارزیابی {evaluationModeLabel(item.mode)}
+            {item.mode ? null : ' (پیش‌فرض)'}
+          </span>
         </div>
         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
           {[item.meta.studentName, item.meta.university, item.meta.supervisor ? `استاد راهنما: ${item.meta.supervisor}` : '']
