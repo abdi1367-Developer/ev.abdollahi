@@ -21,8 +21,8 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   LayersIcon,
+  PlusIcon,
   SaveIcon,
-  SparklesIcon,
   TrashIcon,
 } from './Icons';
 
@@ -323,7 +323,7 @@ export function TemplatePanel({ value, onChange, onNext }: TemplatePanelProps) {
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" className="btn-secondary" onClick={addCriterion}>
-            <SparklesIcon className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
             افزودن معیار
           </button>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">

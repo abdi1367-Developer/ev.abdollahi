@@ -1,10 +1,15 @@
 /**
  * POST /api/blob/upload
- * صدور توکن آپلود مستقیم Vercel Blob برای فایل‌های بزرگ‌تر از سقف بدنه‌ی
- * Serverless Function (۴.۵ مگابایت). خود فایل از مرورگر مستقیم به Blob می‌رود
- * و درخواست به این Route فقط شامل متادیتای کوچک است.
+ * صدور آپلود مستقیم Vercel Blob برای فایل‌های بزرگ‌تر از سقف بدنه‌ی
+ * Serverless Function (۴.۵ مگابایت).
+ *
+ * از مسیر Presigned استفاده می‌کنیم تا برخلاف `handleUpload`، به
+ * `BLOB_READ_WRITE_TOKEN` وابسته نباشد و با احراز هویت OIDC (روش پیش‌فرض
+ * اتصال Blob Store در Vercel) هم کار کند. خود فایل از مرورگر مستقیم به Blob
+ * می‌رود و درخواست به این Route فقط شامل متادیتای کوچک است.
  */
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { issueSignedToken } from '@vercel/blob';
+import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth-server';
 import type { ApiErrorResponse } from '@/lib/types';
@@ -18,14 +23,17 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** عمر توکن امضاشده و URL آپلود؛ برای آپلود فایل ۱۰ مگابایتی کافی است. */
+const UPLOAD_TOKEN_TTL_MS = 30 * 60 * 1000;
+
 function fail(status: number, error: string) {
   return NextResponse.json<ApiErrorResponse>({ error }, { status });
 }
 
 export async function POST(request: Request) {
-  let body: HandleUploadBody;
+  let body: HandleUploadPresignedBody;
   try {
-    body = (await request.json()) as HandleUploadBody;
+    body = (await request.json()) as HandleUploadPresignedBody;
   } catch {
     return fail(400, 'بدنه‌ی درخواست آپلود معتبر نیست.');
   }
@@ -42,10 +50,13 @@ export async function POST(request: Request) {
   const user = auth.user;
 
   try {
-    const jsonResponse = await handleUpload({
+    const jsonResponse = await handleUploadPresigned({
       body,
       request,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
+      // در این مسیر onUploadCompleted ثبت نمی‌شود و callback اعتبارسنجی نمی‌شود؛
+      // ولی SDK برای ساخت URL پیش‌امضاشده وجود یک مقدار غیرخالی را لازم دارد.
+      webhookPublicKey: (process.env.BLOB_WEBHOOK_PUBLIC_KEY || 'unused').trim() || 'unused',
+      getSignedToken: async (pathname, clientPayload) => {
         if (!pathname.startsWith(BLOB_UPLOAD_PREFIX)) {
           throw new Error('مسیر آپلود نامعتبر است.');
         }
@@ -64,13 +75,29 @@ export async function POST(request: Request) {
           throw new Error(`حجم فایل نمی‌تواند بیشتر از ${MAX_FILE_LABEL} باشد.`);
         }
 
-        // فایل بلافاصله بعد از تبدیل حذف می‌شود؛ بنابراین کش و بازنویسی لازم نیست.
-        return {
+        const validUntil = Date.now() + UPLOAD_TOKEN_TTL_MS;
+        // issueSignedToken با OIDC یا توکن Read-Write کار می‌کند و دسترسی
+        // فایل را به همین مسیر و عملیات put محدود می‌کند.
+        const token = await issueSignedToken({
+          pathname,
+          operations: ['put'],
           allowedContentTypes: ACCEPTED_MIME_TYPES,
           maximumSizeInBytes: MAX_FILE_BYTES,
-          addRandomSuffix: true,
-          allowOverwrite: false,
-          tokenPayload: JSON.stringify({ uid: user.id }),
+          validUntil,
+        });
+
+        // فایل بلافاصله بعد از تبدیل حذف می‌شود؛ بنابراین کش طولانی لازم نیست.
+        return {
+          token,
+          urlOptions: {
+            allowedContentTypes: ACCEPTED_MIME_TYPES,
+            maximumSizeInBytes: MAX_FILE_BYTES,
+            addRandomSuffix: true,
+            allowOverwrite: false,
+            cacheControlMaxAge: 60 * 60,
+            validUntil,
+            tokenPayload: JSON.stringify({ uid: user.id }),
+          },
         };
       },
     });

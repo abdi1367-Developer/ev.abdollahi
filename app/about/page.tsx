@@ -5,13 +5,16 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   ClockIcon,
+  EditIcon,
   FileTextIcon,
   InfoIcon,
   LayersIcon,
+  MailIcon,
   MarkdownIcon,
+  PhoneIcon,
   SaveIcon,
   ShieldIcon,
-  SparklesIcon,
+  TargetIcon,
   UploadIcon,
   UserIcon,
 } from '@/components/Icons';
@@ -19,10 +22,10 @@ import {
 export const metadata: Metadata = {
   title: 'درباره ما',
   description:
-    'درباره‌ی ارزیاب هوشمند پایان‌نامه؛ فرایند کار، معماری فنی، امنیت، حریم خصوصی و محدودیت‌ها — اثری از علی عبدالهی.',
+    'درباره‌ی ارزیاب هوشمند پایان‌نامه؛ فرایند کار، معماری فنی، امنیت، حریم خصوصی و محدودیت‌ها — اثری از ع.ع.',
 };
 
-const AUTHOR_NAME = 'علی عبدالهی';
+const AUTHOR_NAME = 'ع.ع';
 
 const HERO_STATS = [
   { label: 'سقف حجم فایل', value: '۱۰ مگابایت' },
@@ -38,7 +41,7 @@ const PILLARS = [
     text: 'دریافت Word یا PDF، تشخیص نوع فایل از امضای بایت‌ها و تبدیل متن به Markdown قابل ویرایش.',
   },
   {
-    icon: SparklesIcon,
+    icon: TargetIcon,
     title: 'ارزیابی ساختارمند',
     text: 'قالب‌های ارزیابی قابل تنظیم با معیار و وزن دلخواه؛ نمره‌ی نهایی در سرور و مستقل از خروجی مدل محاسبه می‌شود.',
   },
@@ -66,10 +69,10 @@ const ARCHITECTURE = [
   {
     icon: FileTextIcon,
     title: 'لایه‌ی پردازش متن',
-    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۱۰ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات. فایل‌های بزرگ‌تر از ۴ مگابایت ابتدا از طریق Vercel Blob و در نبود آن به‌صورت مستقیم (تا سقف ۱۰ مگابایت) آپلود می‌شوند.',
+    text: 'Route Handler مسیر /api/convert با mammoth برای .docx و unpdf برای PDF؛ بررسی magic bytes، سقف ۱۰ مگابایت و تولید Markdown با آمار کاراکتر، واژه و صفحات. فایل‌های بزرگ‌تر از ۴ مگابایت ابتدا از طریق Vercel Blob و در نبود آن به‌صورت مستقیم (در اجرای محلی تا ۱۰ مگابایت) آپلود می‌شوند.',
   },
   {
-    icon: SparklesIcon,
+    icon: LayersIcon,
     title: 'لایه‌ی هوش مصنوعی',
     text: 'مسیر /api/analyze متن را به پیام مدل تبدیل می‌کند: مدل اصلی DeepSeek است و تنها در صورت شکست آن (و وجود کلید) مدل‌های رایگان OpenRouter امتحان می‌شوند. بودجه‌ی زمانی، timeout هر مدل و تلاش‌های ناموفق ثبت می‌شوند.',
   },
@@ -157,9 +160,9 @@ const UX_POINTS = [
 export default function AboutPage() {
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-orange-200/70 bg-brand-gradient p-5 text-white shadow-glow sm:p-8 lg:p-10 dark:border-white/10">
-        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-amber-100/30 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-orange-200/70 bg-hero-gradient p-5 text-white shadow-xl shadow-orange-950/20 sm:p-8 lg:p-10 dark:border-white/10">
+        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-amber-100/15 blur-3xl" />
 
         <div className="relative">
           <div className="flex flex-wrap items-center gap-2">
@@ -277,7 +280,7 @@ export default function AboutPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300">
-                <SparklesIcon className="h-4 w-4" />
+                <CheckIcon className="h-4 w-4" />
               </span>
               <div>
                 <span className="block text-[10px] font-bold text-orange-700 dark:text-orange-300">
@@ -459,7 +462,7 @@ export default function AboutPage() {
           <article className="card h-full">
             <div className="flex items-center gap-2">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200">
-                <SparklesIcon className="h-4 w-4" />
+                <EditIcon className="h-4 w-4" />
               </span>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 دستور تحلیل سفارشی
@@ -555,7 +558,7 @@ export default function AboutPage() {
 
         <div className="relative">
           <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-brand-gradient text-white shadow-lg shadow-orange-600/20">
-            <SparklesIcon className="h-5 w-5" />
+            <UserIcon className="h-5 w-5" />
           </span>
           <p className="mt-3 text-sm font-bold text-slate-900 dark:text-white">
             طراحی و توسعه:{' '}
@@ -565,6 +568,43 @@ export default function AboutPage() {
             اگر پیشنهادی برای بهبود معیارها، پرامپت یا تجربه‌ی کاربری دارید، خوشحال می‌شوم بشنوم. هدف این
             ابزار، کمک به نوشتن پایان‌نامه‌های دقیق‌تر و داوری منصفانه‌تر است.
           </p>
+
+          <div className="mx-auto mt-5 grid max-w-2xl gap-2 text-right sm:grid-cols-2">
+            <a
+              href="mailto:abdollah.abdi1367@gmail.com"
+              className="group flex items-center gap-2.5 rounded-2xl border border-orange-200/70 bg-white/70 px-3.5 py-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-200 dark:hover:border-orange-400/30 dark:hover:bg-white/[0.08]"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200">
+                <MailIcon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-bold text-orange-700 dark:text-orange-300">
+                  ایمیل
+                </span>
+                <span className="ltr mt-0.5 block break-all text-left font-bold" dir="ltr">
+                  abdollah.abdi1367@gmail.com
+                </span>
+              </span>
+            </a>
+
+            <a
+              href="tel:+989124015023"
+              className="group flex items-center gap-2.5 rounded-2xl border border-orange-200/70 bg-white/70 px-3.5 py-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-200 dark:hover:border-orange-400/30 dark:hover:bg-white/[0.08]"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200">
+                <PhoneIcon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-bold text-orange-700 dark:text-orange-300">
+                  شماره تماس
+                </span>
+                <span className="ltr mt-0.5 block text-left font-bold tabular-nums" dir="ltr">
+                  09124015023
+                </span>
+              </span>
+            </a>
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Link href="/login" className="btn-primary px-4 py-2.5 text-xs">
               ورود به سامانه

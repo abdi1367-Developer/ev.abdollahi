@@ -85,25 +85,51 @@ export function FileUploader({
     }
 
     setConverting(true);
+    let blobFailure = '';
     try {
       let response: Response;
 
       if (file.size > BLOB_UPLOAD_THRESHOLD_BYTES) {
         // فایل‌های بزرگ‌تر از سقف بدنه‌ی Vercel باید مستقیم از مرورگر به Blob بروند.
-        const { upload } = await import('@vercel/blob/client');
-        const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-90) || 'thesis-file';
-        const blob = await upload(`thesis-uploads/${createUploadId()}-${safeName}`, file, {
-          access: 'private',
+        // uploadPresigned با OIDC یا توکن Read-Write کار می‌کند و به
+        // handleUpload (که فقط توکن Read-Write را می‌شناسد) وابسته نیست.
+        const { uploadPresigned } = await import('@vercel/blob/client');
+        const safeName =
+          file.name.replace(/[^\w.\-]+/g, '_').replace(/\.{2,}/g, '.').slice(-90) || 'thesis-file';
+        const pathname = `thesis-uploads/${createUploadId()}-${safeName}`;
+        const baseOptions = {
           handleUploadUrl: '/api/blob/upload',
           multipart: true,
           contentType: resolveContentType(file.name),
           clientPayload: JSON.stringify({ fileName: file.name, fileSize: file.size }),
-        });
+        };
+
+        // بعضی Storeها Public و بعضی Private ساخته می‌شوند. اگر حالت اول با
+        // Store هماهنگ نباشد، تلاش دوم با سطح دسترسی دیگر انجام می‌شود.
+        const uploaded = await (async () => {
+          try {
+            return {
+              blob: await uploadPresigned(pathname, file, { ...baseOptions, access: 'private' }),
+              access: 'private' as const,
+            };
+          } catch (privateError) {
+            blobFailure = privateError instanceof Error ? privateError.message : '';
+            console.warn('[FileUploader] private blob upload failed; retrying public:', privateError);
+            return {
+              blob: await uploadPresigned(pathname, file, { ...baseOptions, access: 'public' }),
+              access: 'public' as const,
+            };
+          }
+        })();
 
         response = await fetch('/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ blobPathname: blob.pathname, fileName: file.name }),
+          body: JSON.stringify({
+            blobPathname: uploaded.blob.pathname,
+            fileName: file.name,
+            blobAccess: uploaded.access,
+          }),
         });
       } else {
         const formData = new FormData();
@@ -138,14 +164,18 @@ export function FileUploader({
           }
 
           if (fallbackResponse.status === 401 || fallbackResponse.status === 403) {
-            // توکن آپلود فقط برای کاربر واردشده صادر می‌شود.
+            // URL آپلود فقط برای کاربر واردشده صادر می‌شود.
             setError('نشست شما منقضی شده است. لطفاً دوباره وارد شوید و سپس فایل را آپلود کنید.');
           } else if (fallbackResponse.status === 413) {
             setError(
-              `آپلود مستقیم فایل‌های بزرگ‌تر از ${BLOB_UPLOAD_THRESHOLD_LABEL} در Vercel ممکن نیست؛ برای فایل‌های تا ${MAX_FILE_LABEL} باید Vercel Blob را فعال کنید.`,
+              `آپلود مستقیم فایل‌های بزرگ‌تر از ${BLOB_UPLOAD_THRESHOLD_LABEL} در Vercel ممکن نیست و اتصال Vercel Blob هم برقرار نشد. اتصال Blob Store به پروژه و متغیرهای محیطی را بررسی کنید (وضعیت: /api/health)؛ سپس برای فایل‌های تا ${MAX_FILE_LABEL} دوباره تلاش کنید.`,
             );
           } else {
-            setError(getApiError(fallbackPayload, 'آپلود فایل ناموفق بود. لطفاً دوباره تلاش کنید.'));
+            const fallbackMessage = getApiError(
+              fallbackPayload,
+              'آپلود فایل ناموفق بود. لطفاً دوباره تلاش کنید.',
+            );
+            setError(blobFailure ? `${fallbackMessage} (${blobFailure.slice(0, 160)})` : fallbackMessage);
           }
         } catch {
           setError('ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.');

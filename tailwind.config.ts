@@ -58,6 +58,8 @@ const config: Config = {
       },
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #c2410c 0%, #f97316 46%, #fbbf24 100%)',
+        // بنر اصلی: تناژ عمیق‌تر و کم‌جیغ‌تر برای پس‌زمینه‌های بزرگ
+        'hero-gradient': 'linear-gradient(135deg, #9a3412 0%, #b45309 55%, #c2410c 100%)',
         'brand-sheen':
           'linear-gradient(135deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0) 72%)',
       },

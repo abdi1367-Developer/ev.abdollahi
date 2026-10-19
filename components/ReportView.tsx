@@ -19,10 +19,11 @@ import {
   ClockIcon,
   CopyIcon,
   DownloadIcon,
+  EditIcon,
+  FileTextIcon,
   LayersIcon,
   MarkdownIcon,
   ShieldIcon,
-  SparklesIcon,
 } from './Icons';
 import { ScoreRing } from './ScoreRing';
 
@@ -101,7 +102,7 @@ export function ReportView({
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="chip border-indigo-200 bg-indigo-50 text-indigo-700">
-                <SparklesIcon className="h-3.5 w-3.5" />
+                <FileTextIcon className="h-3.5 w-3.5" />
                 گزارش هوش مصنوعی
               </span>
               {templateName ? (
@@ -151,7 +152,7 @@ export function ReportView({
             {instructions && instructions.trim() ? (
               <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/70 p-3 dark:border-indigo-400/25 dark:bg-indigo-500/10">
                 <p className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-800 dark:text-indigo-200">
-                  <SparklesIcon className="h-3.5 w-3.5" />
+                  <EditIcon className="h-3.5 w-3.5" />
                   دستور تحلیل کاربر
                 </p>
                 <p className="mt-1 whitespace-pre-line text-[13px] leading-7 text-indigo-900 dark:text-indigo-100">

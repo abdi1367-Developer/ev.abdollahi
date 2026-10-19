@@ -13,15 +13,6 @@ const baseProps = {
   focusable: false,
 };
 
-export function SparklesIcon(props: IconProps) {
-  return (
-    <svg {...baseProps} {...props}>
-      <path d="M12 3v3m0 12v3M4.2 7.2l2.1 2.1m11.4 11.4 2.1 2.1M3 12h3m12 0h3M4.2 16.8l2.1-2.1M17.7 7.2l2.1-2.1" />
-      <path d="M12 8.5 13.4 11l2.6 1-2.6 1L12 15.5 10.6 13 8 12l2.6-1L12 8.5Z" />
-    </svg>
-  );
-}
-
 export function UploadIcon(props: IconProps) {
   return (
     <svg {...baseProps} {...props}>
@@ -215,6 +206,15 @@ export function LayersIcon(props: IconProps) {
   );
 }
 
+export function MailIcon(props: IconProps) {
+  return (
+    <svg {...baseProps} {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m4 7 8 6 8-6" />
+    </svg>
+  );
+}
+
 export function PhoneIcon(props: IconProps) {
   return (
     <svg {...baseProps} {...props}>
@@ -237,15 +237,6 @@ export function LogoutIcon(props: IconProps) {
     <svg {...baseProps} {...props}>
       <path d="M10 4H5v16h5" />
       <path d="M14 8l4 4-4 4m4-4H9" />
-    </svg>
-  );
-}
-
-export function SparkIcon(props: IconProps) {
-  return (
-    <svg {...baseProps} {...props}>
-      <path d="M12 3v4m0 10v4M3 12h4m10 0h4" />
-      <path d="m6.5 6.5 2.5 2.5m6 6 2.5 2.5m0-11-2.5 2.5m-6 6-2.5 2.5" />
     </svg>
   );
 }

@@ -27,7 +27,6 @@ import {
   LayersIcon,
   PrintIcon,
   ShieldIcon,
-  SparklesIcon,
   TargetIcon,
   TrendingUpIcon,
 } from './Icons';
@@ -251,7 +250,7 @@ ${styleSheets}
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="chip-brand">
-                <SparklesIcon className="h-3.5 w-3.5" />
+                <FileTextIcon className="h-3.5 w-3.5" />
                 گزارش ارزیابی
               </span>
               {templateName ? (
@@ -440,7 +439,7 @@ ${styleSheets}
       {report.top_recommendations.length ? (
         <section className="card">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <SparklesIcon className="h-4 w-4 text-orange-500" />
+            <TrendingUpIcon className="h-4 w-4 text-orange-500" />
             پیشنهادهای اولویت‌دار
           </h2>
           <ol className="mt-3 grid gap-2 lg:grid-cols-2">

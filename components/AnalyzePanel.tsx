@@ -19,10 +19,11 @@ import {
   ArrowRightIcon,
   CheckIcon,
   ClockIcon,
+  EditIcon,
   FileTextIcon,
-  SparkIcon,
-  SparklesIcon,
+  InfoIcon,
   SpinnerIcon,
+  TargetIcon,
 } from './Icons';
 import { EvaluationModePicker } from './EvaluationModePicker';
 
@@ -188,7 +189,7 @@ export function AnalyzePanel({
             htmlFor="instructions"
             className="flex items-center gap-1.5 text-sm font-bold text-indigo-900 dark:text-indigo-100"
           >
-            <SparkIcon className="h-4 w-4" />
+            <EditIcon className="h-4 w-4" />
             دستور تحلیل (اختیاری)
           </label>
           <span className="text-[11px] font-medium text-indigo-700/80 dark:text-indigo-200/80">
@@ -265,7 +266,7 @@ export function AnalyzePanel({
 
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 text-sm leading-7 text-indigo-900">
         <p className="flex items-center gap-2 font-semibold">
-          <SparklesIcon className="h-4 w-4" />
+          <InfoIcon className="h-4 w-4" />
           نحوه‌ی ارزیابی
         </p>
         <ul className="mt-1.5 list-disc space-y-1 pr-5 text-[13px]">
@@ -371,7 +372,7 @@ export function AnalyzePanel({
             </>
           ) : (
             <>
-              <SparklesIcon className="h-4 w-4" />
+              <TargetIcon className="h-4 w-4" />
               {error ? 'تلاش دوباره' : 'شروع ارزیابی هوشمند'}
             </>
           )}

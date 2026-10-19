@@ -5,7 +5,7 @@ import type { PublicUser } from '@/lib/types';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 
-const AUTHOR_NAME = 'علی عبدالهی';
+const AUTHOR_NAME = 'ع.ع';
 
 export const metadata: Metadata = {
   title: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   applicationName: 'ارزیاب پایان‌نامه',
   authors: [{ name: AUTHOR_NAME }],
   creator: AUTHOR_NAME,
-  keywords: ['ارزیابی پایان‌نامه', 'هوش مصنوعی', 'Markdown', 'داوری علمی', 'علی عبدالهی'],
+  keywords: ['ارزیابی پایان‌نامه', 'هوش مصنوعی', 'Markdown', 'داوری علمی', 'ع.ع'],
 };
 
 export const viewport: Viewport = {

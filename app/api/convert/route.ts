@@ -16,7 +16,13 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth-server';
 import { ConversionError, convertFile, detectFileKind } from '@/lib/markdown';
 import type { ApiErrorResponse, ConvertResponse } from '@/lib/types';
-import { BLOB_UPLOAD_PREFIX, MAX_DIRECT_UPLOAD_LABEL, MAX_FILE_BYTES, MAX_FILE_LABEL } from '@/lib/upload';
+import {
+  BLOB_UPLOAD_PREFIX,
+  MAX_DIRECT_UPLOAD_LABEL,
+  MAX_FILE_BYTES,
+  MAX_FILE_LABEL,
+  type BlobUploadAccess,
+} from '@/lib/upload';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -130,8 +136,34 @@ async function handleBlob(request: Request) {
   }
 
   try {
-    const result = await get(blobPathname, { access: 'private' });
-    if (!result || result.statusCode !== 200) {
+    // کلاینت سطح دسترسی واقعی آپلود را می‌فرستد (Store می‌تواند Public یا
+    // Private باشد). اگر مشخص نشده باشد، هر دو حالت امتحان می‌شود تا با
+    // نسخه‌های قدیمی کلاینت هم سازگار بمانیم.
+    const rawAccess = payload.blobAccess;
+    const explicitAccess: BlobUploadAccess | null =
+      rawAccess === 'public' || rawAccess === 'private' ? rawAccess : null;
+    const accesses: BlobUploadAccess[] = explicitAccess
+      ? [explicitAccess, explicitAccess === 'private' ? 'public' : 'private']
+      : ['private', 'public'];
+
+    type BlobReadResult = Extract<Awaited<ReturnType<typeof get>>, { statusCode: 200 }>;
+    let result: BlobReadResult | null = null;
+    for (let index = 0; index < accesses.length; index += 1) {
+      const access = accesses[index];
+      try {
+        const candidate = await get(blobPathname, { access });
+        if (candidate && candidate.statusCode === 200) {
+          result = candidate;
+          break;
+        }
+      } catch (error) {
+        // اگر حالت اول ناموفق بود، حالت دوم را هم امتحان می‌کنیم؛ این کار
+        // ناسازگاری سطح دسترسی Store را هم پوشش می‌دهد.
+        if (index === accesses.length - 1) throw error;
+      }
+    }
+
+    if (!result) {
       return fail(404, 'فایل آپلودشده پیدا نشد یا منقضی شده است. لطفاً دوباره آپلود کنید.');
     }
 

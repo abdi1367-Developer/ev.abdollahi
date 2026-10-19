@@ -24,7 +24,6 @@ import {
   LayersIcon,
   PlusIcon,
   SaveIcon,
-  SparklesIcon,
   TrashIcon,
 } from './Icons';
 
@@ -308,7 +307,7 @@ export function TemplateWorkbench({ value, onChange, onNext }: TemplateWorkbench
               </button>
             </div>
             <span className="chip-brand">
-              <SparklesIcon className="h-3.5 w-3.5" />
+              <LayersIcon className="h-3.5 w-3.5" />
               {faNumber(value.criteria.length)} معیار
             </span>
           </div>

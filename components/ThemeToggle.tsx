@@ -39,7 +39,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       aria-pressed={dark}
       aria-label={dark ? 'روشن‌کردن ظاهر روز' : 'فعال‌کردن ظاهر شب'}
       title={dark ? 'ظاهر روز' : 'ظاهر شب'}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/60 bg-white/70 text-slate-600 shadow-sm backdrop-blur transition hover:border-indigo-200 hover:text-indigo-700 dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:border-indigo-400/40 dark:hover:text-amber-200 ${className}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/60 bg-white/70 text-slate-600 shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-700 hover:shadow-md dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:border-indigo-400/40 dark:hover:text-amber-200 ${className}`}
     >
       <span className="sr-only">{dark ? 'ظاهر روز' : 'ظاهر شب'}</span>
       {ready && dark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}

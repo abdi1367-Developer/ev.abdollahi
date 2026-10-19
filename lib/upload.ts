@@ -38,6 +38,15 @@ export const BLOB_UPLOAD_THRESHOLD_LABEL = '۴ مگابایت';
 /** پیشوند مسیر فایل‌های موقت در Vercel Blob */
 export const BLOB_UPLOAD_PREFIX = 'thesis-uploads/';
 
+/**
+ * سطح دسترسی آپلود مستقیم.
+ *
+ * Vercel Blob Store می‌تواند Private یا Public ساخته شود و آپلود باید با همان
+ * سطح دسترسی هماهنگ باشد. کلاینت ابتدا Private و در صورت خطا Public را امتحان
+ * می‌کند تا برنامه با هر دو نوع Store کار کند.
+ */
+export type BlobUploadAccess = 'private' | 'public';
+
 export const ACCEPTED_EXTENSIONS = '.docx,.pdf';
 
 export const ACCEPTED_MIME_TYPES = [

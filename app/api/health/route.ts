@@ -24,6 +24,13 @@ export async function GET() {
   const kv = isKvConfigured();
   const deepseekKey = resolveDeepSeekKey();
   const deepseekModel = (process.env.DEEPSEEK_MODEL || 'deepseek-chat').trim() || 'deepseek-chat';
+  const blobReadWriteToken = Boolean((process.env.BLOB_READ_WRITE_TOKEN || '').trim());
+  // در اتصال جدید Vercel، SDK با OIDC و BLOB_STORE_ID احراز هویت می‌کند و
+  // ممکن است BLOB_READ_WRITE_TOKEN در محیط وجود نداشته باشد.
+  const blobOidc = Boolean(
+    (process.env.BLOB_STORE_ID || '').trim() &&
+      ((process.env.VERCEL_OIDC_TOKEN || '').trim() || process.env.VERCEL === '1'),
+  );
 
   const payload = {
     status: 'ok',
@@ -44,7 +51,10 @@ export async function GET() {
     storage: {
       users: kv ? 'kv' : 'file-or-memory',
       history: kv ? 'kv' : 'localStorage',
-      blob: Boolean((process.env.BLOB_READ_WRITE_TOKEN || '').trim()),
+      blob: blobReadWriteToken || blobOidc,
+      blobAuth: blobReadWriteToken ? 'token' : blobOidc ? 'oidc' : 'none',
+      blobStoreId: Boolean((process.env.BLOB_STORE_ID || '').trim()),
+      blobWebhookKey: Boolean((process.env.BLOB_WEBHOOK_PUBLIC_KEY || '').trim()),
     },
     ai: {
       // مدل اصلی DeepSeek است؛ کلید اول از متغیر محیطی و در نبود آن از کلید

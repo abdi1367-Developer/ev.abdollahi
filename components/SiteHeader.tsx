@@ -10,8 +10,8 @@ import {
   InfoIcon,
   LogoutIcon,
   MenuIcon,
+  PlusIcon,
   ShieldIcon,
-  SparklesIcon,
   UserIcon,
   XIcon,
 } from './Icons';
@@ -19,7 +19,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { SiteLogo } from './SiteLogo';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'ارزیابی جدید', icon: SparklesIcon },
+  { href: '/', label: 'ارزیابی جدید', icon: PlusIcon },
   { href: '/history', label: 'سوابق ارزیابی', icon: ChartIcon },
   { href: '/about', label: 'درباره ما', icon: InfoIcon },
 ];
@@ -129,10 +129,10 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
                   aria-current={active ? 'page' : undefined}
                   aria-label={item.label}
                   title={item.label}
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2 py-2 font-semibold transition sm:px-3 ${
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2 py-2 font-semibold transition-all duration-200 sm:px-3 ${
                     active
                       ? 'bg-indigo-500/10 text-indigo-700 shadow-sm ring-1 ring-indigo-500/20 dark:bg-indigo-400/15 dark:text-indigo-200 dark:ring-indigo-400/25'
-                      : 'text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
+                      : 'text-slate-600 hover:-translate-y-0.5 hover:bg-orange-50/90 hover:text-orange-800 hover:shadow-md hover:shadow-orange-600/10 active:translate-y-0 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white dark:hover:shadow-black/20'
                   }`}
                 >
                   {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -160,7 +160,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
               </span>
               <button
                 type="button"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-700 disabled:opacity-60 dark:text-slate-300 dark:hover:text-rose-300"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-500/10 hover:text-rose-700 hover:shadow-sm disabled:opacity-60 dark:text-slate-300 dark:hover:text-rose-300"
                 onClick={() => void handleLogout()}
                 disabled={loggingOut}
                 title="خروج از حساب"
@@ -174,7 +174,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
               href="/login"
               aria-current={onLoginPage ? 'page' : undefined}
               title="ورود به حساب کاربری"
-              className={`btn-secondary hidden shrink-0 px-3 py-2 text-xs lg:inline-flex ${
+              className={`btn-secondary hidden shrink-0 px-3 py-2 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md lg:inline-flex ${
                 onLoginPage ? 'ring-2 ring-orange-400/40 dark:ring-orange-400/30' : ''
               }`}
             >
@@ -195,7 +195,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
             aria-controls="mobile-nav"
             aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
             title={menuOpen ? 'بستن منو' : 'منو'}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/60 bg-white/70 text-slate-700 shadow-sm backdrop-blur transition hover:border-indigo-200 hover:text-indigo-700 lg:hidden dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:border-indigo-400/40 dark:hover:text-amber-200"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/60 bg-white/70 text-slate-700 shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-700 hover:shadow-md lg:hidden dark:border-white/10 dark:bg-white/[0.07] dark:text-slate-200 dark:hover:border-indigo-400/40 dark:hover:text-amber-200"
           >
             {menuOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
@@ -219,10 +219,10 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                     active
                       ? 'bg-indigo-500/10 text-indigo-700 shadow-sm ring-1 ring-indigo-500/20 dark:bg-indigo-400/15 dark:text-indigo-200 dark:ring-indigo-400/25'
-                      : 'text-slate-700 hover:bg-slate-900/5 dark:text-slate-200 dark:hover:bg-white/10'
+                      : 'text-slate-700 hover:-translate-y-0.5 hover:bg-slate-900/5 hover:shadow-sm dark:text-slate-200 dark:hover:bg-white/10'
                   }`}
                 >
                   {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -269,7 +269,7 @@ export function SiteHeader({ initialUser = null }: SiteHeaderProps) {
                 href="/login"
                 onClick={() => setMenuOpen(false)}
                 aria-current={onLoginPage ? 'page' : undefined}
-                className={`btn-secondary w-full justify-center px-3 py-2 text-sm ${
+                className={`btn-secondary w-full justify-center px-3 py-2 text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                   onLoginPage ? 'ring-2 ring-orange-400/40 dark:ring-orange-400/30' : ''
                 }`}
               >

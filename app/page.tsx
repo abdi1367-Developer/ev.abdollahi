@@ -1,11 +1,11 @@
 import { Wizard } from '@/components/Wizard';
 import {
+  ArrowLeftIcon,
   ChartIcon,
   CheckIcon,
   FileTextIcon,
   LayersIcon,
   ShieldIcon,
-  SparklesIcon,
   UploadIcon,
 } from '@/components/Icons';
 
@@ -19,10 +19,10 @@ const FLOW = [
 export default function HomePage() {
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/50 bg-brand-gradient p-5 text-white shadow-glow sm:p-8 lg:p-10 dark:border-white/10">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 bg-brand-sheen opacity-60" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/40 bg-hero-gradient p-5 text-white shadow-xl shadow-orange-950/20 sm:p-8 lg:p-10 dark:border-white/10">
+        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-amber-200/15 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-brand-sheen opacity-35" />
 
         <div className="relative grid items-center gap-7 lg:grid-cols-[1fr_1.15fr]">
           <div>
@@ -42,7 +42,7 @@ export default function HomePage() {
 
             <a href="#evaluation" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-orange-700 shadow-lg transition hover:bg-orange-50 sm:text-sm">
               شروع ارزیابی
-              <SparklesIcon className="h-4 w-4" />
+              <ArrowLeftIcon className="h-4 w-4" />
             </a>
           </div>
 

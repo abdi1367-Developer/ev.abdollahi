@@ -13,10 +13,12 @@ import type {
 import {
   AlertIcon,
   CheckIcon,
+  PlusIcon,
   SaveIcon,
   ShieldIcon,
   SpinnerIcon,
   TrashIcon,
+  UserIcon,
 } from './Icons';
 
 interface CreateForm {
@@ -33,6 +35,18 @@ const EMPTY_FORM: CreateForm = {
   role: 'user',
 };
 
+/** دو حرف اول نام نمایشی برای آواتار متنی */
+function userInitials(user: PublicUser): string {
+  const initials = user.displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('');
+  return (initials || user.username.slice(0, 2) || '؟').toUpperCase();
+}
+
 export function UserManager() {
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [me, setMe] = useState<PublicUser | null>(null);
@@ -42,10 +56,12 @@ export function UserManager() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [form, setForm] = useState<CreateForm>(EMPTY_FORM);
-  const [resetId, setResetId] = useState('');
-  const [resetPassword, setResetPassword] = useState('');
   const [selfPassword, setSelfPassword] = useState({ current: '', next: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  /** کاربر تازه‌ساخته‌شده برای نمایش خلاصه بلافاصله زیر فرم */
+  const [lastCreated, setLastCreated] = useState<PublicUser | null>(null);
+  /** شناسه‌ی کاربر جدید برای برجسته‌کردن کارتش در فهرست */
+  const [highlightId, setHighlightId] = useState('');
 
   const load = async () => {
     try {
@@ -98,7 +114,9 @@ export function UserManager() {
         return;
       }
       setForm(EMPTY_FORM);
-      setNotice(`کاربر «${payload.user.displayName}» ساخته شد.`);
+      setLastCreated(payload.user);
+      setHighlightId(payload.user.id);
+      setNotice(`کاربر «${payload.user.displayName}» ساخته شد و در پایین قابل مشاهده است.`);
       await refresh();
     } catch {
       setError('ارتباط با سرور برقرار نشد.');
@@ -130,22 +148,13 @@ export function UserManager() {
         previous.map((user) => (user.id === updatedUser.id ? updatedUser : user)),
       );
       if (me?.id === updatedUser.id) setMe(updatedUser);
+      setLastCreated((previous) => (previous?.id === updatedUser.id ? updatedUser : previous));
       setNotice('تغییرات کاربر ذخیره شد.');
     } catch {
       setError('ارتباط با سرور برقرار نشد.');
     } finally {
       setBusyId('');
     }
-  };
-
-  const handleResetPassword = async (id: string) => {
-    if (resetPassword.length < 8) {
-      setError('رمز جدید باید حداقل ۸ کاراکتر باشد.');
-      return;
-    }
-    await patchUser(id, { password: resetPassword });
-    setResetId('');
-    setResetPassword('');
   };
 
   const handleDelete = async (user: PublicUser) => {
@@ -163,6 +172,7 @@ export function UserManager() {
         return;
       }
       setUsers((previous) => previous.filter((item) => item.id !== user.id));
+      setLastCreated((previous) => (previous?.id === user.id ? null : previous));
       setNotice(`کاربر «${user.displayName}» حذف شد.`);
     } catch {
       setError('ارتباط با سرور برقرار نشد.');
@@ -199,6 +209,29 @@ export function UserManager() {
     }
   };
 
+  const adminCount = users.filter((user) => user.role === 'admin').length;
+  const activeCount = users.filter((user) => user.active).length;
+  const metrics = [
+    {
+      label: 'کل کاربران',
+      value: users.length,
+      icon: UserIcon,
+      tone: 'bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200',
+    },
+    {
+      label: 'مدیران سامانه',
+      value: adminCount,
+      icon: ShieldIcon,
+      tone: 'bg-amber-500/10 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200',
+    },
+    {
+      label: 'کاربران فعال',
+      value: activeCount,
+      icon: CheckIcon,
+      tone: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200',
+    },
+  ];
+
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
@@ -210,25 +243,52 @@ export function UserManager() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/20 bg-brand-gradient p-6 text-white shadow-glow sm:p-8">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/20 bg-hero-gradient p-6 text-white shadow-xl shadow-orange-950/20 sm:p-8">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 right-0 h-56 w-56 rounded-full bg-amber-200/10 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold backdrop-blur">
               <ShieldIcon className="h-3.5 w-3.5" />
               مخصوص مدیر سامانه
             </span>
             <h1 className="mt-3 text-2xl font-extrabold">مدیریت کاربران</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-indigo-100">
-              ساخت کاربر، تغییر نقش و وضعیت، بازنشانی رمز و حذف کاربر.
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-orange-50/80">
+              ساخت کاربر، تغییر نقش و وضعیت، بازنشانی رمز و حذف کاربر — همه در یک نمای یکدست.
             </p>
           </div>
           <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-center backdrop-blur">
-            <p className="text-2xl font-extrabold">{users.length.toLocaleString('fa-IR')}</p>
-            <p className="text-[11px] text-indigo-100">کاربر ثبت‌شده</p>
+            <p className="text-2xl font-extrabold tabular-nums">
+              {users.length.toLocaleString('fa-IR')}
+            </p>
+            <p className="text-[11px] text-orange-50/80">کاربر ثبت‌شده</p>
           </div>
         </div>
       </section>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <div
+              key={metric.label}
+              className="flex items-center gap-3 rounded-2xl border border-orange-100/70 bg-white/70 p-3.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.05]"
+            >
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${metric.tone}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {metric.label}
+                </span>
+                <span className="mt-0.5 block text-lg font-extrabold tabular-nums text-slate-900 dark:text-white">
+                  {metric.value.toLocaleString('fa-IR')}
+                </span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
       {error ? (
         <div className="alert-error flex items-start gap-2" role="alert">
@@ -243,12 +303,18 @@ export function UserManager() {
         </div>
       ) : null}
 
-      <form className="card space-y-4" onSubmit={handleCreate}>
-        <div>
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">ساخت کاربر جدید</h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            نام کاربری فقط با حروف انگلیسی، عدد، نقطه یا خط تیره.
-          </p>
+      <form className="card relative space-y-4 overflow-hidden border-orange-200/70" onSubmit={handleCreate}>
+        <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-orange-400/10 blur-3xl" />
+        <div className="relative flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand-gradient text-white shadow-lg shadow-orange-600/20">
+            <PlusIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">ساخت کاربر جدید</h2>
+            <p className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
+              نام کاربری فقط با حروف انگلیسی، عدد، نقطه یا خط تیره؛ رمز عبور حداقل ۸ کاراکتر.
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -316,21 +382,77 @@ export function UserManager() {
           </div>
         </div>
 
-        <button type="submit" className="btn-primary sm:w-auto" disabled={creating}>
-          {creating ? (
-            <>
-              <SpinnerIcon className="h-4 w-4 animate-spin" />
-              در حال ساخت…
-            </>
-          ) : (
-            <>
-              <SaveIcon className="h-4 w-4" />
-              ساخت کاربر
-            </>
-          )}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="submit" className="btn-primary w-full sm:w-auto" disabled={creating}>
+            {creating ? (
+              <>
+                <SpinnerIcon className="h-4 w-4 animate-spin" />
+                در حال ساخت…
+              </>
+            ) : (
+              <>
+                <SaveIcon className="h-4 w-4" />
+                ساخت کاربر
+              </>
+            )}
+          </button>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+            کاربر بلافاصله در فهرست پایین اضافه می‌شود.
+          </span>
+        </div>
       </form>
 
+      {lastCreated ? (
+        <section className="card relative overflow-hidden border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-400/20 dark:bg-emerald-500/[0.06]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+                <CheckIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                  کاربر جدید با موفقیت اضافه شد
+                </h2>
+                <p className="mt-1 text-xs leading-6 text-emerald-800/80 dark:text-emerald-200/80">
+                  «{lastCreated.displayName}» اکنون در فهرست کاربران پایین قابل مدیریت است.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-ghost px-2.5 py-1.5 text-xs"
+              onClick={() => setLastCreated(null)}
+            >
+              بستن
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-200/70 bg-white/70 p-3 dark:border-emerald-400/15 dark:bg-white/[0.04]">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-600 text-xs font-extrabold text-white">
+              {userInitials(lastCreated)}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-slate-900 dark:text-white">
+                {lastCreated.displayName}
+              </span>
+              <span className="ltr mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
+                {lastCreated.username}
+              </span>
+            </span>
+            <span className="ms-auto flex flex-wrap items-center gap-1.5">
+              <span className="chip">
+                {lastCreated.role === 'admin' ? 'مدیر سامانه' : 'کاربر عادی'}
+              </span>
+              <span className="chip text-emerald-700 dark:text-emerald-300">
+                {lastCreated.active ? 'فعال' : 'غیرفعال'}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {formatFaDate(lastCreated.createdAt, false)}
+              </span>
+            </span>
+          </div>
+        </section>
+      ) : null}
 
       <form className="card space-y-4" onSubmit={handleChangeMyPassword}>
         <div>
@@ -391,26 +513,41 @@ export function UserManager() {
       </form>
 
       <section className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">کاربران سامانه</h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              نقش و وضعیت هر کاربر را می‌توانید مستقیماً تغییر دهید.
+              نقش و وضعیت هر کاربر را می‌توانید مستقیماً تغییر دهید؛ کاربر جدید در انتهای همین فهرست اضافه می‌شود.
             </p>
           </div>
           <span className="chip">{users.length.toLocaleString('fa-IR')} کاربر</span>
         </div>
 
-        {users.map((user) => (
-          <UserCard
-            key={user.id}
-            user={user}
-            isMe={me?.id === user.id}
-            busy={busyId === user.id}
-            onPatch={patchUser}
-            onDelete={handleDelete}
-          />
-        ))}
+        {users.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-orange-200/80 bg-white/50 px-4 py-10 text-center dark:border-white/10 dark:bg-white/[0.03]">
+            <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-orange-500/10 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200">
+              <UserIcon className="h-5 w-5" />
+            </span>
+            <p className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-100">
+              هنوز کاربری ثبت نشده است.
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              از فرم بالا اولین کاربر را بسازید.
+            </p>
+          </div>
+        ) : (
+          users.map((user) => (
+            <UserCard
+              key={user.id}
+              user={user}
+              isMe={me?.id === user.id}
+              busy={busyId === user.id}
+              highlighted={highlightId === user.id}
+              onPatch={patchUser}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
       </section>
     </div>
   );
@@ -420,6 +557,7 @@ interface UserCardProps {
   user: PublicUser;
   isMe: boolean;
   busy: boolean;
+  highlighted: boolean;
   onPatch: (
     id: string,
     patch: { role?: UserRole; active?: boolean; password?: string },
@@ -427,7 +565,7 @@ interface UserCardProps {
   onDelete: (user: PublicUser) => Promise<void>;
 }
 
-function UserCard({ user, isMe, busy, onPatch, onDelete }: UserCardProps) {
+function UserCard({ user, isMe, busy, highlighted, onPatch, onDelete }: UserCardProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
@@ -445,39 +583,55 @@ function UserCard({ user, isMe, busy, onPatch, onDelete }: UserCardProps) {
   };
 
   return (
-    <article className="card space-y-3">
+    <article
+      className={`card space-y-3 transition-all duration-300 ${
+        highlighted ? 'ring-2 ring-orange-400/60 shadow-glow' : ''
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              {user.displayName}
-            </h3>
-            {isMe ? <span className="chip-brand">شما</span> : null}
-            <span
-              className={`chip ${
-                user.active
-                  ? 'text-emerald-700 dark:text-emerald-300'
-                  : 'text-rose-700 dark:text-rose-300'
-              }`}
-            >
-              {user.active ? 'فعال' : 'غیرفعال'}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            <span className="ltr inline-block">{user.username}</span>
-            {' — '}
-            {user.role === 'admin' ? 'مدیر سامانه' : 'کاربر عادی'}
-            {' — '}
-            عضویت: {formatFaDate(user.createdAt, false)}
-          </p>
-          {user.lastLoginAt ? (
-            <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
-              آخرین ورود: {formatFaDate(user.lastLoginAt)}
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand-gradient text-xs font-extrabold text-white shadow-md shadow-orange-600/20">
+            {userInitials(user)}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {user.displayName}
+              </h3>
+              {isMe ? <span className="chip-brand">شما</span> : null}
+              <span
+                className={`chip gap-1.5 ${
+                  user.active
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-rose-700 dark:text-rose-300'
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    user.active ? 'bg-emerald-500' : 'bg-rose-500'
+                  }`}
+                  aria-hidden="true"
+                />
+                {user.active ? 'فعال' : 'غیرفعال'}
+              </span>
+              {user.role === 'admin' ? (
+                <span className="chip text-amber-700 dark:text-amber-200">مدیر سامانه</span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="ltr inline-block font-semibold">{user.username}</span>
+              {' · '}
+              عضویت: {formatFaDate(user.createdAt, false)}
             </p>
-          ) : null}
+            {user.lastLoginAt ? (
+              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                آخرین ورود: {formatFaDate(user.lastLoginAt)}
+              </p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50/80 p-1.5 dark:bg-white/[0.04]">
           <select
             className="field w-auto py-2 text-xs"
             value={user.role}

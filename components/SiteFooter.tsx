@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SiteLogo } from './SiteLogo';
 
-const AUTHOR_NAME = 'علی عبدالهی';
+const AUTHOR_NAME = 'ع.ع';
 
 export function SiteFooter() {
   const pathname = usePathname();

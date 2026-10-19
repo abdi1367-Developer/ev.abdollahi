@@ -18,8 +18,8 @@ const PUBLIC_PATHS = new Set([
 /**
  * این مسیرها نشست را داخل خود Route Handler بررسی می‌کنند.
  * لازم است چون Vercel Blob پس از پایان آپلود یک callback بدون کوکی به
- * /api/blob/upload می‌فرستد و باید بتواند پاسخ ۲۰۰ بگیرد؛ صدور توکن آپلود
- * همچنان در همان Route با requireUser محافظت می‌شود.
+ * /api/blob/upload می‌فرستد و باید بتواند پاسخ ۲۰۰ بگیرد؛ صدور URL
+ * پیش‌امضاشده‌ی آپلود همچنان در همان Route با requireUser محافظت می‌شود.
  */
 const SESSION_CHECKED_IN_HANDLER = new Set(['/api/blob/upload']);
 

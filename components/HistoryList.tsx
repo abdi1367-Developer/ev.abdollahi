@@ -8,7 +8,7 @@ import { deleteLocalRecord, readLocalSummaries } from '@/lib/local-store';
 import { evaluationModeLabel, findEvaluationMode } from '@/lib/evaluation-mode';
 import { scoreTone } from '@/lib/ui';
 import type { HistoryResponse, HistorySummary } from '@/lib/types';
-import { AlertIcon, ArrowLeftIcon, ClockIcon, SearchIcon, SparklesIcon, TrashIcon } from './Icons';
+import { AlertIcon, ArrowLeftIcon, ClockIcon, PlusIcon, SearchIcon, TrashIcon } from './Icons';
 
 type SortMode = 'newest' | 'oldest' | 'score-desc' | 'score-asc';
 
@@ -136,7 +136,7 @@ export function HistoryList() {
           </p>
         </div>
         <Link href="/" className="btn-primary">
-          <SparklesIcon className="h-4 w-4" />
+          <PlusIcon className="h-4 w-4" />
           ارزیابی جدید
         </Link>
       </header>

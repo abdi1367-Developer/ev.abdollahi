@@ -100,7 +100,8 @@ npm run start
 | `AI_DEEPSEEK_RESERVE_MS` | خیر | `20000` | زمان رزرو‌شده برای DeepSeek |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | خیر | — | ذخیره‌سازی دائمی سوابق (Vercel KV) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | خیر | — | نام جایگزین Upstash |
-| `BLOB_READ_WRITE_TOKEN` | خیر | — | آپلود فایل‌های بالای ۴ مگابایت (Vercel Blob). اتصال Blob Store در Vercel این متغیر را خودکار به محیط پروژه اضافه می‌کند |
+| `BLOB_READ_WRITE_TOKEN` | خیر | — | آپلود فایل‌های بالای ۴ مگابایت (Vercel Blob). با اتصال Blob Store در Vercel، احراز هویت OIDC + `BLOB_STORE_ID` هم پشتیبانی می‌شود و وجود این توکن الزامی نیست |
+| `BLOB_STORE_ID` | خیر | — | شناسه‌ی Store برای احراز هویت OIDC؛ اتصال Store در Vercel آن را خودکار اضافه می‌کند |
 
 \* بدون `DEEPSEEK_API_KEY` تحلیل با پیام خطای شفاف متوقف می‌شود (تنها در صورتی که
 `OPENROUTER_API_KEY` تنظیم شده باشد، تحلیل با مدل رایگان انجام می‌شود). صحت کلید را می‌توانید
@@ -209,7 +210,7 @@ app/
   history/page.tsx          فهرست سوابق
   history/[id]/page.tsx     گزارش ذخیره‌شده
   api/convert/route.ts      تبدیل Word/PDF به Markdown
-  api/blob/upload/route.ts  صدور توکن آپلود مستقیم Vercel Blob (فایل‌های بالای ۴ مگابایت)
+  api/blob/upload/route.ts  صدور URL پیش‌امضاشده‌ی Vercel Blob (فایل‌های بالای ۴ مگابایت)
   api/analyze/route.ts      ارزیابی با هوش مصنوعی (+ قالب و دستور سفارشی)
   api/auth/...              ورود، خروج، اطلاعات حساب و تغییر رمز
   api/users/...             مدیریت کاربران (فقط مدیر)
@@ -242,8 +243,8 @@ middleware.ts               محافظت از صفحات و APIها
 
 | متد | مسیر | ورودی | خروجی |
 | --- | --- | --- | --- |
-| `POST` | `/api/convert` | `multipart/form-data` با فیلد `file` یا `{ blobPathname, fileName }` | `{ markdown, info }` |
-| `POST` | `/api/blob/upload` | بدنه‌ی استاندارد Client Upload در Vercel Blob | توکن آپلود مستقیم |
+| `POST` | `/api/convert` | `multipart/form-data` با فیلد `file` یا `{ blobPathname, fileName, blobAccess? }` | `{ markdown, info }` |
+| `POST` | `/api/blob/upload` | بدنه‌ی استاندارد Presigned Upload در Vercel Blob | URL پیش‌امضاشده‌ی آپلود |
 | `POST` | `/api/analyze` | `{ markdown, meta, instructions?, template?, mode? }` | `{ report, analysis, template, mode }` |
 | `POST` | `/api/auth/login` | `{ username, password }` | `{ user }` + کوکی نشست |
 | `POST` | `/api/auth/logout` | — | `{ ok }` |
@@ -275,9 +276,13 @@ middleware.ts               محافظت از صفحات و APIها
    می‌شوند. بدون KV، ذخیره‌سازی کاربران روی فایل محلی است که در Vercel پایدار نیست (با این حال ورود مدیر
    در چند Function مجزا با امضای کوکی کار می‌کند).
 5. برای امکان آپلود فایل‌های **بالای ۴ مگابایت تا ۱۰ مگابایت**، از **Storage → Create → Blob** یک
-   Blob Store با دسترسی **Private** بسازید و به پروژه متصل کنید. اتصال Store متغیر
-   `BLOB_READ_WRITE_TOKEN` را خودکار به محیط پروژه اضافه می‌کند؛ برای اجرای محلی همان مقدار را در
-   `.env.local` بگذارید. فایل موقت پس از تبدیل از Blob حذف می‌شود.
+   Blob Store بسازید و به پروژه متصل کنید. دسترسی **Private** یا **Public** هر دو پشتیبانی می‌شوند؛
+   برنامه ابتدا با Private و در صورت ناسازگاری با Public تلاش می‌کند. اتصال Store در Vercel به‌صورت
+   پیش‌فرض با OIDC (`BLOB_STORE_ID`) کار می‌کند و نیازی به `BLOB_READ_WRITE_TOKEN` نیست؛ اگر در محیط
+   محلی می‌خواهید Blob را تست کنید، توکن Read-Write را در `.env.local` بگذارید. فایل موقت پس از تبدیل
+   از Blob حذف می‌شود. پس از اتصال Store حتماً یک‌بار Redeploy کنید؛ متغیرهای جدید به استقرار
+   فعلی اضافه نمی‌شوند. وضعیت اتصال را می‌توانید در `GET /api/health` و فیلد `storage.blobAuth`
+   (`token` / `oidc` / `none`) ببینید.
 6. Deploy کنید. مسیرهای `/api/analyze` و `/api/convert` با `maxDuration = 60` اجرا می‌شوند؛ در پلن
    Hobby این سقف رعایت شده است.
 
@@ -372,7 +377,7 @@ OpenRouter و DeepSeek است.
 
 ## طراح و توسعه‌دهنده
 
-**علی عبدالهی** — ایده، طراحی رابط کاربری، معماری و پیاده‌سازی این ابزار.
+**ع.ع** — ایده، طراحی رابط کاربری، معماری و پیاده‌سازی این ابزار.
 
 صفحه‌ی [`/about`](app/about/page.tsx) در برنامه نیز همین توضیحات، معماری فنی و محدودیت‌ها را نشان می‌دهد.
 
