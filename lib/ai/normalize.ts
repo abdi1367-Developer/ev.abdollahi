@@ -11,6 +11,7 @@ import { MIN_BULLETS, ensureReportBullets } from '../bullets';
 import { normalizePersianSpacing } from '../persian';
 import type { CriterionResult, EvaluationReport } from '../types';
 import { AIError } from './errors';
+import { parseLooseJson, stripCodeFences } from './json-recovery';
 
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
@@ -113,52 +114,27 @@ function round1(value: number): number {
 
 /**
  * استخراج اولین شیء JSON از پاسخ مدل.
- * پوشش: بلوک کد ```json، متن اضافی قبل/بعد، ویرگول اضافی، گیومه‌های فارسی.
+ * پوشش: بلوک کد ```json، متن اضافی قبل/بعد، ویرگول اضافی، گیومه‌های فارسی،
+ * خط جدید خامِ داخل رشته‌ها و خروجیِ ناقص (قطع‌شده در سقف توکن).
+ * جزئیات بازیابی در `lib/ai/json-recovery.ts` است.
  */
 export function extractJson(raw: string): unknown {
   if (typeof raw !== 'string' || !raw.trim()) {
     throw new AIError('پاسخ مدل خالی بود.', { kind: 'invalid_output', status: 502 });
   }
 
-  const text = raw
-    .trim()
-    .replace(/^```(?:json|JSON)?\s*/, '')
-    .replace(/```\s*$/, '')
-    .trim();
+  const text = stripCodeFences(raw);
+  const parsed = parseLooseJson(text);
+  if (parsed !== undefined) return parsed;
 
-  const candidates: string[] = [text];
-
-  const firstBrace = text.indexOf('{');
-  const lastBrace = text.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    candidates.push(text.slice(firstBrace, lastBrace + 1));
-  }
-
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      // تلاش بعدی
-    }
-  }
-
-  // آخرین تلاش: اصلاح خطاهای رایج JSON در خروجی مدل‌ها
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    const repaired = text
-      .slice(firstBrace, lastBrace + 1)
-      .replace(/[\u201c\u201d]/g, '"')
-      .replace(/,\s*([}\]])/g, '$1');
-    try {
-      return JSON.parse(repaired);
-    } catch {
-      // نادیده گرفتن و پرتاب خطای نهایی
-    }
-  }
+  // برای عیب‌یابی، انتهای خروجی (جایی که معمولاً قطع می‌شود) در لاگ سرور ثبت می‌شود
+  const tail = text.slice(-240).replace(/\s+/g, ' ');
+  console.warn(`[ai] خروجی مدل JSON معتبر نبود (${text.length} نویسه): …${tail}`);
 
   throw new AIError('پاسخ مدل ساختار JSON معتبر نداشت.', {
     kind: 'invalid_output',
     status: 502,
-    detail: text.slice(0, 300),
+    detail: `length=${text.length}; tail=${tail}`,
   });
 }
 

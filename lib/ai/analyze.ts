@@ -153,7 +153,9 @@ export async function analyzeThesis(input: {
     } else {
       let raw = '';
       try {
-        const timeoutMs = Math.min(remaining, reserveMs + 15000);
+        // گزارش کامل (۵+۵ برای هر معیار) به زمان بیشتری نیاز دارد؛
+        // مهلت طولانی‌تر از قطع‌شدن خروجی وسط JSON جلوگیری می‌کند.
+        const timeoutMs = Math.min(remaining, reserveMs + 25000);
         raw = await callDeepSeek({ config: deepSeek, messages, timeoutMs });
         const report = normalizeReport(extractJson(raw), input.criteria);
         context.attempts.push({ provider: 'deepseek', model: deepSeek.model, ok: true });
@@ -245,7 +247,8 @@ export async function analyzeThesis(input: {
     } else {
       let raw = '';
       try {
-        const timeoutMs = Math.min(remaining, reserveMs + 15000);
+        // تلاش نهایی هم مثل تلاش اصلی به مهلت کافی نیاز دارد تا JSON کامل شود
+        const timeoutMs = Math.min(remaining, reserveMs + 25000);
         raw = await callDeepSeek({ config: deepSeek, messages, timeoutMs });
         const report = normalizeReport(extractJson(raw), input.criteria);
         context.attempts.push({ provider: 'deepseek', model: deepSeek.model, ok: true });

@@ -28,8 +28,24 @@ const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 
 const DISCOVERY_TIMEOUT_MS = 8000;
 const MODELS_CACHE_TTL_MS = 10 * 60 * 1000;
-/** حداکثر توکن خروجی؛ برای گزارش JSON کافی است و هزینه را کنترل می‌کند */
-const MAX_OUTPUT_TOKENS = 4000;
+/**
+ * سقف توکن خروجی.
+ * گزارش کامل (۸ معیار × ۵ نقطه قوت و ۵ نقطه ضعف) در فارسی معمولاً بیش از
+ * ۴۰۰۰ توکن می‌شود و سقف پایین باعث قطع‌شدن JSON و خطای «ساختار معتبر نداشت»
+ * می‌شد؛ پس برای DeepSeek سقف بالاتری در نظر گرفته شده است.
+ * با متغیر محیطی `AI_MAX_OUTPUT_TOKENS` (۱۰۰۰ تا ۸۱۹۲) قابل تنظیم است.
+ */
+const MAX_OUTPUT_TOKENS: Record<'deepseek' | 'openrouter', number> = {
+  deepseek: 6000,
+  openrouter: 4000,
+};
+
+/** سقف توکن خروجی برای هر سرویس (مقدار محیطی بر هر دو مقدم است) */
+function resolveMaxOutputTokens(provider: 'deepseek' | 'openrouter'): number {
+  const parsed = Number.parseInt((process.env.AI_MAX_OUTPUT_TOKENS || '').replace(/[^\d]/g, ''), 10);
+  if (!Number.isFinite(parsed) || parsed < 1000) return MAX_OUTPUT_TOKENS[provider];
+  return Math.min(parsed, 8192);
+}
 
 let modelsCache: { at: number; models: string[] } | null = null;
 
@@ -140,7 +156,7 @@ export async function callChatCompletion(request: ChatRequest): Promise<string> 
         model: request.model,
         messages: request.messages,
         temperature: 0.2,
-        max_tokens: MAX_OUTPUT_TOKENS,
+        max_tokens: resolveMaxOutputTokens(request.provider),
         ...(request.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
       signal: controller.signal,
@@ -184,6 +200,13 @@ export async function callChatCompletion(request: ChatRequest): Promise<string> 
         model: request.model,
         detail: JSON.stringify(payload.error).slice(0, 400),
       });
+    }
+
+    // اگر مدل به سقف توکن خورده باشد، JSON ناقص برمی‌گردد؛ در لاگ مشخص می‌کنیم
+    if (payload?.choices?.[0]?.finish_reason === 'length') {
+      console.warn(
+        `[ai] ${request.provider}/${request.model} به سقف ${resolveMaxOutputTokens(request.provider)} توکن خروجی رسید؛ پاسخ ممکن است ناقص باشد.`,
+      );
     }
 
     const content = extractContent(payload).trim();
